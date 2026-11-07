@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="Endless Exposure">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#18211f">
-<meta name="app-version" content="12">
+<meta name="app-version" content="13">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Instrument+Sans:wght@400;500;600&display=swap">
@@ -213,6 +213,16 @@
   }
   #label .pd { padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(41,36,31,.25); font-size: .7rem; letter-spacing: .04em; }
   #label a { color: var(--paper-ink); font-weight: 600; text-underline-offset: 3px; }
+  #label .tour {
+    margin-top: 14px; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 10px; align-items: center;
+    padding: 11px 12px; border-radius: 10px; text-decoration: none; color: var(--paper-ink);
+    background: rgba(41,36,31,.06); border: 1px solid rgba(41,36,31,.14); font-weight: 400;
+  }
+  #label .tour::after { content: "↗"; color: var(--paper-muted); }
+  #label .tour:hover { background: rgba(41,36,31,.1); }
+  #label .tour svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.5; }
+  #label .tour b { display: block; font-size: .84rem; font-weight: 600; }
+  #label .tour small { display: block; color: var(--paper-muted); font-size: .74rem; margin-top: 1px; }
   #labelClose { display: none; }
   @media (max-width: 1099px) {
     #label {
@@ -390,6 +400,10 @@
   <div class="date"></div>
   <dl></dl>
   <div class="foot"><span class="pd">Pubblico dominio · CC0</span><a target="_blank" rel="noopener">Scheda del museo ↗</a></div>
+  <a id="tourLink" class="tour" target="_blank" rel="noopener" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18"/><path d="M12 3a14 14 0 0 0 0 18"/></svg>
+    <span><b></b><small></small></span>
+  </a>
 </aside>
 
 <button id="backBtn" class="corner" type="button" aria-label="Indietro" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></button>
@@ -457,7 +471,7 @@
 <script>
 (() => {
   'use strict';
-  const VERSION = '12';
+  const VERSION = '13';
   const AIC = 'https://api.artic.edu/api/v1';
   const CMA = 'https://openaccess-api.clevelandart.org/api/artworks/';
   const WD_API = 'https://www.wikidata.org/w/api.php';
@@ -1258,6 +1272,13 @@
       attempt(0);
     });
   }
+  /* Visite virtuali ufficiali per i luoghi le cui riprese in alta definizione non sono pubbliche. */
+  const TOURS = [
+    { ids: ['wd-Q844675', 'wd-Q567861', 'wd-Q500242'], match: /sistin|sistine/i,
+      title: 'Visita virtuale della Cappella Sistina', note: 'Musei Vaticani · sito ufficiale',
+      url: 'https://www.museivaticani.va/content/museivaticani/it/collezioni/musei/cappella-sistina/tour-virtuale.html' },
+  ];
+  const tourFor = (w) => TOURS.find((t) => t.ids.includes(w.id) || t.match.test([w.title, w.en, w.museum].join(' ')));
   function fillLabel(w) {
     labelEl.querySelector('.who').textContent = w.artist || 'Artista sconosciuto';
     const bio = (w.bio || '').replace(w.artist, '').replace(/^[\s,\n]+/, '').replace(/\n/g, ' · ');
@@ -1275,6 +1296,9 @@
     a.hidden = !w.link; if (w.link) a.href = w.link;
     a.textContent = w.src === 'wd' ? 'Wikimedia Commons ↗' : 'Scheda del museo ↗';
     labelEl.querySelector('.pd').textContent = w.src === 'wd' ? 'Pubblico dominio' : 'Pubblico dominio · CC0';
+    const tour = tourFor(w), tl = $('#tourLink');
+    tl.hidden = !tour;
+    if (tour) { tl.href = tour.url; tl.querySelector('b').textContent = tour.title; tl.querySelector('small').textContent = tour.note; }
     cap.querySelector('b').textContent = w.title;
     cap.querySelector('span').textContent = [w.artist, w.date].filter(Boolean).join(' · ');
   }
