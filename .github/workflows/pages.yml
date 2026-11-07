@@ -2,7 +2,10 @@
 # Per ogni opera in capolavori.json scarica l'originale da Wikimedia Commons,
 # lo riduce alla larghezza indicata e lo taglia in riquadri IIIF statici (libvips).
 # Formato IIIF 2: è quello che OpenSeadragon 4 richiede per i riquadri statici ("512," e "full/500,").
-# I riquadri restano in cache: vengono rigenerati solo quando cambia capolavori.json.
+#
+# Ogni opera ha una "firma" (file, larghezza, formato dei riquadri) salvata in tiles/<slug>/.firma.
+# A ogni pubblicazione vengono tagliate solo le opere nuove o con la firma cambiata;
+# le altre arrivano dalla cache. Le opere tolte dall'elenco vengono rimosse.
 name: Pubblica il sito
 
 on:
@@ -25,46 +28,90 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Riquadri già pronti?
-        id: cache
-        uses: actions/cache@v4
+      - name: Recupera i riquadri già fatti
+        uses: actions/cache/restore@v4
         with:
           path: tiles
-          key: tiles-v1-${{ hashFiles('capolavori.json', '.github/workflows/pages.yml') }}
+          key: tiles-v2-${{ hashFiles('capolavori.json') }}
+          restore-keys: |
+            tiles-v2-
+            tiles-v1-
 
-      - name: Installa libvips
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libvips-tools jq
-
-      - name: Taglia i capolavori in riquadri IIIF
-        if: steps.cache.outputs.cache-hit != 'true'
+      - name: Taglia solo le opere nuove o cambiate
+        id: tiles
         env:
           BASE: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/tiles
           UA: EndlessExposure/1.0 (https://github.com/${{ github.repository }})
+          LAYOUT: iiif2-512-q82
         run: |
           set -euo pipefail
           mkdir -p tiles work
-          jq -c '.[]' capolavori.json | while read -r item; do
+          changed=false
+          vips_ready=false
+
+          # Opere tolte dall'elenco: via i loro riquadri
+          for dir in tiles/*/; do
+            [ -d "$dir" ] || continue
+            slug=$(basename "$dir")
+            if ! jq -e --arg s "$slug" 'any(.[]; .slug == $s)' capolavori.json >/dev/null; then
+              echo "Rimuovo $slug (non è più in capolavori.json)"
+              rm -rf "$dir"; changed=true
+            fi
+          done
+
+          while read -r item; do
             slug=$(jq -r .slug <<<"$item")
             file=$(jq -r .file <<<"$item")
             width=$(jq -r .width <<<"$item")
+            firma=$(printf '%s|%s|%s' "$file" "$width" "$LAYOUT" | sha256sum | cut -c1-16)
+
+            # Già fatta con la stessa firma: si riusa
+            if [ -f "tiles/$slug/.firma" ] && [ "$(cat "tiles/$slug/.firma")" = "$firma" ]; then
+              echo "✓ $slug già pronta, la riuso"
+              continue
+            fi
+            # Riquadri della versione precedente del workflow (senza firma) ma con la larghezza giusta
+            if [ ! -f "tiles/$slug/.firma" ] && [ -f "tiles/$slug/info.json" ] && [ "$(jq -r .width "tiles/$slug/info.json")" = "$width" ]; then
+              echo "✓ $slug già pronta (versione precedente), la riuso"
+              echo "$firma" > "tiles/$slug/.firma"; changed=true
+              continue
+            fi
+
+            if [ "$vips_ready" = false ]; then
+              sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends libvips-tools
+              vips_ready=true
+            fi
+            echo "::group::Taglio $slug ($width px)"
+            rm -rf "tiles/$slug"
             url="https://commons.wikimedia.org/wiki/Special:FilePath/$(jq -rn --arg f "$file" '$f|@uri')"
-            echo "::group::$slug ($width px)"
             curl -fL --retry 3 -A "$UA" -o work/src.jpg "$url"
             ls -lh work/src.jpg
             # --height enorme: conta solo la larghezza, anche per i quadri verticali
             vips thumbnail work/src.jpg work/resized.v "$width" --height 100000000
             vips dzsave work/resized.v "tiles/$slug" --layout iiif --id "$BASE" --tile-size 512 --overlap 0 --suffix ".jpg[Q=82]"
+            echo "$firma" > "tiles/$slug/.firma"
             rm -f work/src.jpg work/resized.v
             echo "$(find "tiles/$slug" -type f | wc -l) file, $(du -sh "tiles/$slug" | cut -f1)"
             echo "::endgroup::"
-          done
+            changed=true
+          done < <(jq -c '.[]' capolavori.json)
+
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+          echo "Spazio dei riquadri: $(du -sh tiles | cut -f1)"
+
+      - name: Salva i riquadri per le prossime pubblicazioni
+        if: steps.tiles.outputs.changed == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: tiles
+          key: tiles-v2-${{ hashFiles('capolavori.json') }}-${{ github.run_id }}
 
       - name: Prepara il sito
         run: |
           mkdir -p _site
           cp index.html icon.png icon-512.png manifest.webmanifest capolavori.json .nojekyll _site/
           cp -r tiles _site/tiles
+          find _site/tiles -name .firma -delete
 
       - uses: actions/upload-pages-artifact@v3
         with:
