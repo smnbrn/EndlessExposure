@@ -4,12 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Endless Exposure</title>
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Endless Exposure">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#18211f">
-<meta name="app-version" content="10">
+<meta name="app-version" content="11">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Instrument+Sans:wght@400;500;600&display=swap">
@@ -455,7 +457,7 @@
 <script>
 (() => {
   'use strict';
-  const VERSION = '10';
+  const VERSION = '11';
   const AIC = 'https://api.artic.edu/api/v1';
   const CMA = 'https://openaccess-api.clevelandart.org/api/artworks/';
   const WD_API = 'https://www.wikidata.org/w/api.php';
@@ -1399,12 +1401,26 @@
     const n = layers.findIndex((l) => !TECH.test(l.label));
     return n >= 0 ? n : 0;
   }
+  /* Capolavori tagliati da noi in riquadri IIIF (vedi capolavori.json e il workflow di GitHub). */
+  let hdList = null;
+  const loadHD = () => hdList || (hdList = fetch('capolavori.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : [])).catch(() => []));
   const zoomCache = new Map();
   async function zoomSource(w) {
     if (zoomCache.has(w.id)) return zoomCache.get(w.id);
     let src = null;
+    /* 0. Alta definizione nostra */
+    if (w.src === 'wd') {
+      const hd = (await loadHD()).find((h) => 'wd-' + h.qid === w.id);
+      if (hd) {
+        try {
+          const url = new URL('tiles/' + hd.slug + '/info.json', location.href).href;
+          const info = await fetchTimeout(url);
+          src = { ts: url, label: 'Alta definizione · ' + info.width.toLocaleString('it-IT') + ' px' };
+        } catch (_) {}
+      }
+    }
     /* 1. IIIF del museo, solo se più dettagliato di quanto offre Commons (3840 px) */
-    if (w.manifest) {
+    if (!src && w.manifest) {
       try {
         const layers = iiifLayers(await fetchTimeout(w.manifest));
         const li = defaultLayer(layers);

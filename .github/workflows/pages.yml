@@ -1,0 +1,79 @@
+# Pubblica Endless Exposure su GitHub Pages.
+# Per ogni opera in capolavori.json scarica l'originale da Wikimedia Commons,
+# lo riduce alla larghezza indicata e lo taglia in riquadri IIIF statici (libvips).
+# I riquadri restano in cache: vengono rigenerati solo quando cambia capolavori.json.
+name: Pubblica il sito
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Riquadri già pronti?
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: tiles
+          key: tiles-v1-${{ hashFiles('capolavori.json', '.github/workflows/pages.yml') }}
+
+      - name: Installa libvips
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libvips-tools jq
+
+      - name: Taglia i capolavori in riquadri IIIF
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          BASE: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/tiles
+          UA: EndlessExposure/1.0 (https://github.com/${{ github.repository }})
+        run: |
+          set -euo pipefail
+          mkdir -p tiles work
+          jq -c '.[]' capolavori.json | while read -r item; do
+            slug=$(jq -r .slug <<<"$item")
+            file=$(jq -r .file <<<"$item")
+            width=$(jq -r .width <<<"$item")
+            url="https://commons.wikimedia.org/wiki/Special:FilePath/$(jq -rn --arg f "$file" '$f|@uri')"
+            echo "::group::$slug ($width px)"
+            curl -fL --retry 3 -A "$UA" -o work/src.jpg "$url"
+            ls -lh work/src.jpg
+            vips thumbnail work/src.jpg work/resized.v "$width"
+            vips dzsave work/resized.v "tiles/$slug" --layout iiif3 --id "$BASE" --tile-size 512 --overlap 0 --suffix ".jpg[Q=82]"
+            rm -f work/src.jpg work/resized.v
+            echo "$(find "tiles/$slug" -type f | wc -l) file, $(du -sh "tiles/$slug" | cut -f1)"
+            echo "::endgroup::"
+          done
+
+      - name: Prepara il sito
+        run: |
+          mkdir -p _site
+          cp index.html icon.png icon-512.png manifest.webmanifest capolavori.json .nojekyll _site/
+          cp -r tiles _site/tiles
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
