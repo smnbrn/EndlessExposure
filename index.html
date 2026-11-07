@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="Endless Exposure">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#18211f">
-<meta name="app-version" content="11">
+<meta name="app-version" content="12">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Instrument+Sans:wght@400;500;600&display=swap">
@@ -402,7 +402,7 @@
   <div class="in">
     <p class="eyebrow">Pianta del museo</p>
     <h1 class="mark">Endless <i>Exposure</i></h1>
-    <p class="mark-sub">Sei secoli di pittura, sala per sala. Scegli un movimento, poi un artista, e guarda le sue opere una alla volta.</p>
+    <p class="mark-sub">Sette secoli di pittura, sala per sala. Scegli un movimento, poi un artista, e guarda le sue opere una alla volta.</p>
     <input id="find" class="find" type="search" placeholder="Cerca un movimento o un artista…" aria-label="Cerca un movimento o un artista" autocomplete="off" enterkeyhint="search">
     <div id="artistHits" hidden><p class="sec-k">Artisti</p><ul class="rows" id="artistHitList"></ul></div>
     <p class="sec-k" id="moveK">Movimenti</p>
@@ -457,7 +457,7 @@
 <script>
 (() => {
   'use strict';
-  const VERSION = '11';
+  const VERSION = '12';
   const AIC = 'https://api.artic.edu/api/v1';
   const CMA = 'https://openaccess-api.clevelandart.org/api/artworks/';
   const WD_API = 'https://www.wikidata.org/w/api.php';
@@ -480,16 +480,39 @@
      w = identificativo Wikidata (verificato)
      b, d = nascita e morte (c = circa) */
   const MOVEMENTS = [
+    { id: 'protorinascimento', name: 'Gotico e Protorinascimento', from: 1260, to: 1400,
+      desc: 'Dal fondo oro bizantino allo spazio vero: con Giotto le figure prendono peso, volume ed emozione.',
+      artists: [
+        { n: 'Cimabue', w: 'Q15790', k: 'cimabue', b: '1240c', d: 1302 },
+        { n: 'Duccio di Buoninsegna', w: 'Q15792', q: 'Duccio', k: 'duccio', b: '1255c', d: 1319 },
+        { n: 'Giotto', w: 'Q7814', k: 'giotto', b: '1267c', d: 1337 },
+        { n: 'Simone Martini', w: 'Q221043', k: 'simone martini', b: '1284c', d: 1344 },
+        { n: 'Ambrogio Lorenzetti', w: 'Q211562', k: 'ambrogio lorenzetti', b: '1290c', d: 1348 },
+      ] },
     { id: 'rinascimento-italiano', name: 'Rinascimento italiano', from: 1400, to: 1520,
       desc: "Prospettiva, proporzione e studio dell'antico: tra Firenze, Venezia e Roma la pittura rimette l'uomo al centro.",
       artists: [
+        { n: 'Masaccio', w: 'Q5811', k: 'masaccio', b: 1401, d: 1428 },
         { n: 'Fra Angelico', w: 'Q5664', k: 'angelico', b: '1395c', d: 1455 },
+        { n: 'Piero della Francesca', w: 'Q5822', k: 'piero della francesca', b: '1415c', d: 1492 },
         { n: 'Sandro Botticelli', w: 'Q5669', k: 'botticelli', b: 1445, d: 1510 },
         { n: 'Andrea Mantegna', w: 'Q5681', k: 'mantegna', b: 1431, d: 1506 },
         { n: 'Giovanni Bellini', w: 'Q17169', k: 'giovanni bellini', b: '1430c', d: 1516 },
         { n: 'Carlo Crivelli', w: 'Q348024', k: 'carlo crivelli', b: '1430c', d: 1495 },
         { n: 'Perugino', w: 'Q5827', k: 'perugino', b: '1450c', d: 1523 },
+        { n: 'Leonardo da Vinci', w: 'Q762', k: 'leonardo', b: 1452, d: 1519 },
+        { n: 'Michelangelo', w: 'Q5592', k: 'michelangelo', b: 1475, d: 1564 },
         { n: 'Raffaello', w: 'Q5597', q: 'Raphael', k: 'raphael', b: 1483, d: 1520 },
+        { n: 'Andrea del Sarto', w: 'Q5571', k: 'andrea del sarto', b: 1486, d: 1530 },
+        { n: 'Correggio', w: 'Q8457', k: 'correggio', b: 1489, d: 1534 },
+      ] },
+    { id: 'rinascimento-veneziano', parent: 'rinascimento-italiano', name: 'Rinascimento veneziano', from: 1480, to: 1590,
+      desc: 'A Venezia conta il colore più del disegno: luce calda, paesaggi d’atmosfera, tele enormi.',
+      artists: [
+        { n: 'Giorgione', w: 'Q8459', k: 'giorgione', b: '1478c', d: 1510 },
+        { n: 'Tiziano', w: 'Q47551', q: 'Titian', k: 'titian', p: 'Titian', b: '1488c', d: 1576 },
+        { n: 'Tintoretto', w: 'Q9319', k: 'tintoretto', b: 1518, d: 1594 },
+        { n: 'Paolo Veronese', w: 'Q9440', k: 'veronese', b: 1528, d: 1588 },
       ] },
     { id: 'manierismo', parent: 'rinascimento-italiano', name: 'Manierismo', from: 1520, to: 1600,
       desc: 'Dopo Raffaello e Michelangelo: figure allungate, colori acidi, pose studiate.',
@@ -708,42 +731,50 @@
     store(QID_KEY + a.slug, hit.id);
     return hit.id;
   }
+  /* Tipi di opera su Wikidata. I primi contano come "Dipinti" (anche affreschi e cicli, es. la volta della Sistina);
+     sculture e disegni compaiono in "Tutte le opere". */
+  const WD_PAINT = ['Q3305213', 'Q22669139', 'Q16905550', 'Q16905563', 'Q219423', 'Q848330'];
+  const WD_OTHER = ['Q860861', 'Q179700', 'Q93184'];
+  const WD_TYPES = WD_PAINT.concat(WD_OTHER).map((q) => 'wd:' + q).join(' ');
   const fileOf = (u) => decodeURIComponent((u.split('Special:FilePath/')[1] || '').replace(/\?.*$/, ''));
   async function wdWorks(a) {
     const qid = await wdQid(a);
-    const q = `SELECT ?item ?itemLabel ?en ?image ?inception ?collectionLabel ?sitelinks ?manifest WHERE {
-      ?item wdt:P170 wd:${qid}; wdt:P31 wd:Q3305213; wdt:P18 ?image; wikibase:sitelinks ?sitelinks.
+    const q = `SELECT ?item ?itemLabel ?en ?image ?inception ?collectionLabel ?sitelinks ?manifest ?type WHERE {
+      VALUES ?type { ${WD_TYPES} }
+      ?item wdt:P170 wd:${qid}; wdt:P31 ?type; wdt:P18 ?image; wikibase:sitelinks ?sitelinks.
       OPTIONAL { ?item wdt:P571 ?inception. }
       OPTIONAL { ?item wdt:P195 ?collection. }
       OPTIONAL { ?item wdt:P6108 ?manifest. }
       OPTIONAL { ?item rdfs:label ?en FILTER(LANG(?en) = "en") }
       SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". }
-    } ORDER BY DESC(?sitelinks) LIMIT 160`;
+    } ORDER BY DESC(?sitelinks) LIMIT 200`;
     const d = await getJSON('wd', WD_SPARQL + '?' + new URLSearchParams({ query: q, format: 'json' }));
     return wdRows(a, (d.results && d.results.bindings) || []);
   }
   function wdRows(a, bindings) {
-    const seen = new Set(), out = [];
+    const seen = new Map(), out = [];
     bindings.forEach((b) => {
       const qn = b.item.value.split('/').pop();
-      if (seen.has(qn)) return;
-      seen.add(qn);
+      const isPaint = !b.type || WD_PAINT.includes(b.type.value.split('/').pop());
+      if (seen.has(qn)) { if (isPaint) seen.get(qn).painting = true; return; }
       const file = fileOf(b.image.value);
-      if (!file || /\.(tiff?|pdf|djvu|svg)$/i.test(file)) return;
+      if (!file || /\.(tiff?|pdf|djvu|svg|stl|glb)$/i.test(file)) return;
       const lbl = b.itemLabel && b.itemLabel.value;
       const en = b.en ? b.en.value : '';
       const title = lbl && !/^Q\d+$/.test(lbl) ? lbl : (en || 'Senza titolo');
       const yr = b.inception ? b.inception.value.replace(/^(-?\d+).*$/, '$1').replace(/^0+/, '') : '';
       const fp = FILEPATH + encodeURIComponent(file);
-      out.push({
+      const work = {
         id: 'wd-' + qn, src: 'wd', museum: b.collectionLabel ? b.collectionLabel.value.replace(/^Q\d+$/, '') : '',
         title, en, artist: a.n, bio: life(a), date: yr, medium: '', dims: '', credit: '',
-        painting: true, w: 0, h: 0, lqip: '', alt: title,
+        painting: isPaint, w: 0, h: 0, lqip: '', alt: title,
         thumb: fp + '?width=500', imgSmall: fp + '?width=960', img: fp + '?width=1920',
         file, manifest: b.manifest ? b.manifest.value : '', fame: Number(b.sitelinks.value) || 0,
         link: 'https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(file.replace(/ /g, '_')),
         wiki: b.item.value,
-      });
+      };
+      seen.set(qn, work);
+      out.push(work);
     });
     return out;
   }
@@ -752,8 +783,9 @@
   async function wdSearch(a, text) {
     const qid = await wdQid(a);
     const t = text.toLowerCase().replace(/["\\]/g, ' ').trim();
-    const q = `SELECT ?item ?itemLabel ?en ?image ?inception ?collectionLabel ?sitelinks ?manifest WHERE {
-      ?item wdt:P170 wd:${qid}; wdt:P31 wd:Q3305213; wdt:P18 ?image; wikibase:sitelinks ?sitelinks; rdfs:label ?l.
+    const q = `SELECT ?item ?itemLabel ?en ?image ?inception ?collectionLabel ?sitelinks ?manifest ?type WHERE {
+      VALUES ?type { ${WD_TYPES} }
+      ?item wdt:P170 wd:${qid}; wdt:P31 ?type; wdt:P18 ?image; wikibase:sitelinks ?sitelinks; rdfs:label ?l.
       FILTER(LANG(?l) IN ("it", "en", "fr") && CONTAINS(LCASE(?l), "${t}"))
       OPTIONAL { ?item wdt:P571 ?inception. }
       OPTIONAL { ?item wdt:P195 ?collection. }
@@ -837,7 +869,7 @@
   }
 
   /* ---------- Stato per artista, con cache sul dispositivo (7 giorni, ultimi 30 artisti) ---------- */
-  const CACHE_PREFIX = 'ee.artist.v4.', CACHE_INDEX = 'ee.artist.index.v4', CACHE_TTL = 7 * 864e5;
+  const CACHE_PREFIX = 'ee.artist.v5.', CACHE_INDEX = 'ee.artist.index.v5', CACHE_TTL = 7 * 864e5;
   const SOURCES = { wd: wdWorks, cma: cmaWorks, met: metWorks, aic: aicWorks };
   const SRC_ORDER = ['wd', 'cma', 'met', 'aic'];
   const SRC_NAME = { wd: 'Wikimedia', cma: 'Cleveland', met: 'Met', aic: 'Chicago' };
