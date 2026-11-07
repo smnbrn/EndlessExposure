@@ -79,3 +79,5 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          timeout: 1800000  # 30 minuti: con molti riquadri la sincronizzazione di Pages può superare i 10 predefiniti
