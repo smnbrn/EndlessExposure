@@ -1,6 +1,7 @@
 # Pubblica Endless Exposure su GitHub Pages.
 # Per ogni opera in capolavori.json scarica l'originale da Wikimedia Commons,
 # lo riduce alla larghezza indicata e lo taglia in riquadri IIIF statici (libvips).
+# Formato IIIF 2: è quello che OpenSeadragon 4 richiede per i riquadri statici ("512," e "full/500,").
 # I riquadri restano in cache: vengono rigenerati solo quando cambia capolavori.json.
 name: Pubblica il sito
 
@@ -52,7 +53,7 @@ jobs:
             curl -fL --retry 3 -A "$UA" -o work/src.jpg "$url"
             ls -lh work/src.jpg
             vips thumbnail work/src.jpg work/resized.v "$width"
-            vips dzsave work/resized.v "tiles/$slug" --layout iiif3 --id "$BASE" --tile-size 512 --overlap 0 --suffix ".jpg[Q=82]"
+            vips dzsave work/resized.v "tiles/$slug" --layout iiif --id "$BASE" --tile-size 512 --overlap 0 --suffix ".jpg[Q=82]"
             rm -f work/src.jpg work/resized.v
             echo "$(find "tiles/$slug" -type f | wc -l) file, $(du -sh "tiles/$slug" | cut -f1)"
             echo "::endgroup::"
