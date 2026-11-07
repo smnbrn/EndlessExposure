@@ -52,7 +52,8 @@ jobs:
             echo "::group::$slug ($width px)"
             curl -fL --retry 3 -A "$UA" -o work/src.jpg "$url"
             ls -lh work/src.jpg
-            vips thumbnail work/src.jpg work/resized.v "$width"
+            # --height enorme: conta solo la larghezza, anche per i quadri verticali
+            vips thumbnail work/src.jpg work/resized.v "$width" --height 100000000
             vips dzsave work/resized.v "tiles/$slug" --layout iiif --id "$BASE" --tile-size 512 --overlap 0 --suffix ".jpg[Q=82]"
             rm -f work/src.jpg work/resized.v
             echo "$(find "tiles/$slug" -type f | wc -l) file, $(du -sh "tiles/$slug" | cut -f1)"
