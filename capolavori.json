@@ -12,5 +12,20 @@
     "title": "La Gioconda — Leonardo da Vinci",
     "file": "Mona Lisa, by Leonardo da Vinci, from C2RMF retouched.jpg",
     "width": 7479
+  },
+  {
+    "slug": "grande-giorno-ira",
+    "qid": "Q7732151",
+    "title": "Il grande giorno della sua ira — John Martin",
+    "file": "1853 Tríptico del Juicio Final; John Martin.jpg",
+    "crop": [19350, 0, 9309, 5887],
+    "width": 9309
+  },
+  {
+    "slug": "magdalena-bay",
+    "qid": "Q18638608",
+    "title": "Magdalena Bay — François-Auguste Biard",
+    "file": "François Biard - Magdalena Bay, vue prise de la presqu'île des Tombeaux, au nord du Spitzberg.jpg",
+    "width": 3996
   }
 ]

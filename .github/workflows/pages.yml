@@ -63,7 +63,13 @@ jobs:
             slug=$(jq -r .slug <<<"$item")
             file=$(jq -r .file <<<"$item")
             width=$(jq -r .width <<<"$item")
-            firma=$(printf '%s|%s|%s' "$file" "$width" "$LAYOUT" | sha256sum | cut -c1-16)
+            # crop facoltativo: [sinistra, alto, larghezza, altezza] in pixel dell'originale
+            crop=$(jq -r '(.crop // []) | map(tostring) | join(" ")' <<<"$item")
+            if [ -n "$crop" ]; then
+              firma=$(printf '%s|%s|%s|%s' "$file" "$width" "$LAYOUT" "$crop" | sha256sum | cut -c1-16)
+            else
+              firma=$(printf '%s|%s|%s' "$file" "$width" "$LAYOUT" | sha256sum | cut -c1-16)
+            fi
 
             # Già fatta con la stessa firma: si riusa
             if [ -f "tiles/$slug/.firma" ] && [ "$(cat "tiles/$slug/.firma")" = "$firma" ]; then
@@ -86,11 +92,17 @@ jobs:
             url="https://commons.wikimedia.org/wiki/Special:FilePath/$(jq -rn --arg f "$file" '$f|@uri')"
             curl -fL --retry 3 -A "$UA" -o work/src.jpg "$url"
             ls -lh work/src.jpg
+            src=work/src.jpg
+            if [ -n "$crop" ]; then
+              # shellcheck disable=SC2086
+              vips crop work/src.jpg work/crop.v $crop
+              src=work/crop.v
+            fi
             # --height enorme: conta solo la larghezza, anche per i quadri verticali
-            vips thumbnail work/src.jpg work/resized.v "$width" --height 100000000
+            vips thumbnail "$src" work/resized.v "$width" --height 100000000
             vips dzsave work/resized.v "tiles/$slug" --layout iiif --id "$BASE" --tile-size 512 --overlap 0 --suffix ".jpg[Q=82]"
             echo "$firma" > "tiles/$slug/.firma"
-            rm -f work/src.jpg work/resized.v
+            rm -f work/src.jpg work/crop.v work/resized.v
             echo "$(find "tiles/$slug" -type f | wc -l) file, $(du -sh "tiles/$slug" | cut -f1)"
             echo "::endgroup::"
             changed=true
