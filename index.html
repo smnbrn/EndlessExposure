@@ -1400,12 +1400,12 @@
   const RIJKS_SEARCH = 'https://data.rijksmuseum.nl/search/collection';
   const RIJKS_DATA = 'https://data.rijksmuseum.nl/';
   /* I valori arrivano come testo, come { en, nl } o come elenco di { @language, @value }: si prende l'inglese. */
-  function lv(x, lang = 'en') {
-    if (!x) return '';
-    if (typeof x === 'string') return x;
-    if (Array.isArray(x)) { const h = x.find((v) => v && v['@language'] === lang) || x[0]; return h ? (typeof h === 'string' ? h : h['@value'] || '') : ''; }
-    if (x['@value']) return x['@value'];
-    return x[lang] || x.nl || Object.values(x)[0] || '';
+  function lv(x, lang = 'en', depth = 0) {
+    if (x == null || depth > 4) return '';
+    if (typeof x === 'string' || typeof x === 'number') return String(x);
+    if (Array.isArray(x)) return lv(x.find((v) => v && v['@language'] === lang) || x[0], lang, depth + 1);
+    if ('@value' in x) return lv(x['@value'], lang, depth + 1);
+    return lv(x[lang] != null ? x[lang] : x.nl != null ? x.nl : Object.values(x)[0], lang, depth + 1);
   }
   const SKOS_LABEL = 'http://www.w3.org/2004/02/skos/core#prefLabel', SIOC_SVC = 'http://rdfs.org/sioc/services#has_service';
   /* Materiali del museo (in inglese) nelle parole che mediumOf conosce. */
@@ -1418,7 +1418,9 @@
     const num = c.id.split('/').pop();
     const ext = lv(c.extent), hm = /height\s*([\d.]+)\s*cm/i.exec(ext), wm = /width\s*([\d.]+)\s*cm/i.exec(ext);
     const mats = matsOf([].concat(c.medium || []).map((m) => lv(m[SKOS_LABEL])));
-    const title = lv(c.title) || 'Senza titolo', nl = lv(c.title, 'nl');
+    /* A volte il titolo è un elenco senza lingua: prima l'olandese, poi l'inglese. */
+    const plain = Array.isArray(c.title) && c.title.every((t) => typeof t === 'string');
+    const title = (plain ? c.title[c.title.length - 1] : lv(c.title)) || 'Senza titolo', nl = plain ? c.title[0] : lv(c.title, 'nl');
     return {
       id: 'rijks-' + num, src: 'rijks', museum: 'Rijksmuseum, Amsterdam',
       title, nl: nl !== title ? nl : '', artist: a.n, bio: life(a),
@@ -1480,8 +1482,12 @@
     const d = await getJSON('smk', SMK + '?' + new URLSearchParams({
       keys: a.q, filters: '[public_domain:true],[has_image:true],[object_names:painting]', rows: '40', lang: 'en', fields: SMK_FIELDS,
     }));
-    return (d.items || []).filter((r) => r.public_domain && r.image_iiif_id &&
-      (r.production || []).some((p) => norm([p.creator_forename, p.creator_surname].join(' ')).includes(a.k))).map((r) => fromSmk(r, a));
+    /* Conta solo l'attribuzione principale e senza riserve: niente bottega, scuola, copie da, già attribuito a. */
+    return (d.items || []).filter((r) => {
+      const p = (r.production || [])[0];
+      return r.public_domain && r.image_iiif_id && p && !p.creator_role && !/[(]|skole|efter|kopi/i.test(p.creator || '') &&
+        norm([p.creator_forename, p.creator_surname].join(' ')).includes(a.k);
+    }).map((r) => fromSmk(r, a));
   }
 
   /* L'Art Institute protegge le immagini con Cloudflare, che a volte le blocca.
@@ -1594,6 +1600,16 @@
   /* Per la copertina basta la prima fonte che trova qualcosa. */
   async function ensureCover(a) { await ensure(a, 'wd'); if (!st(a).works.wd.length) await ensure(a, 'cma'); }
   const settled = (a, k) => ['done', 'error', 'blocked'].includes(st(a).status[k]);
+  /* Parole che contano in un titolo: senza articoli e preposizioni, "St" come "Saint". */
+  const STOP = new Set('the of a an and with in on at as known probably called de het een van met en la il lo le di del della dei e da con'.split(' '));
+  const words = (t) => norm(t).split(' ').map((x) => (x === 'st' ? 'saint' : x)).filter((x) => x && !STOP.has(x));
+  /* Quanta parte del titolo più corto (almeno due parole) si ritrova nell'altro. */
+  const overlap = (p, q) => {
+    const [sh, lo] = p.length <= q.length ? [p, q] : [q, p];
+    if (sh.length < 2) return 0;
+    const L = new Set(lo);
+    return sh.filter((x) => L.has(x)).length / sh.length;
+  };
   /* Le opere già presenti da Wikidata non si ripetono quando arrivano dai musei (confronto sul titolo inglese).
      Passano solo le opere di pubblico dominio (pdOK): il filtro sta qui, così vale per pareti, passeggiata, opera a caso e del giorno. */
   const allWorks = (a) => {
@@ -1601,10 +1617,18 @@
     const known = new Set(s.works.wd.flatMap((w) => [norm(w.en), norm(w.title)]).filter(Boolean));
     /* Rijksmuseum e SMK non danno l'identificativo Wikidata dell'opera: si confrontano titolo (inglese, olandese o danese) e anno,
        perché titoli come "Autoritratto" si ripetono tra opere diverse dello stesso artista. */
-    const known2 = new Set(s.works.wd.flatMap((w) => [norm(w.en), norm(w.title)].filter(Boolean).map((t) => t + '|' + yearOf(w))));
-    const dup = (w) => (w.src === 'rijks' || w.src === 'smk'
-      ? [w.title, w.nl].some((t) => t && known2.has(norm(t) + '|' + yearOf(w)))
-      : known.has(norm(w.title)));
+    /* Se l'opera di Wikidata sta nello stesso museo basta che quasi tutte le parole del titolo più corto stiano nell'altro
+       ("The Jewish Bride" e "Isaac and Rebecca, Known as 'The Jewish Bride'"; "Syndics of the Drapers' Guild" e "The Sampling
+       Officials of the Amsterdam Drapers' Guild, Known as 'The Syndics'"), con al più tre anni di differenza: i musei datano
+       "c. 1665 - c. 1669", Wikidata 1667. */
+    const wdT = s.works.wd.map((w) => ({ t: [w.en, w.title].filter(Boolean).map(words), y: yearOf(w), m: norm(w.museum) }));
+    const sameMuseum = (w, x) => (w.src === 'rijks' ? x.m.includes('rijksmuseum') : /statens museum|\bsmk\b/.test(x.m));
+    const dup = (w) => {
+      if (w.src !== 'rijks' && w.src !== 'smk') return known.has(norm(w.title));
+      const ts = [w.title, w.nl].filter(Boolean).map(words), y = yearOf(w);
+      return wdT.some((x) => x.t.some((t) => ts.some((u) => (t.join(' ') === u.join(' ') && x.y === y) ||
+        (sameMuseum(w, x) && Math.abs(x.y - y) <= 3 && overlap(t, u) >= .75))));
+    };
     return s.works.wd.filter(ok).concat(SRC_ORDER.slice(1).flatMap((k) => s.works[k].filter((w) => ok(w) && !dup(w))));
   };
   const hasPaintings = (a) => allWorks(a).some((w) => w.painting);
