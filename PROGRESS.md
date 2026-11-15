@@ -7,7 +7,6 @@ Lavoro sull'estetica di `index.html`. Lo stile esistente si mantiene (palette, B
 - [x] **0. Base** — `index.html` allineato al file più recente del proprietario, screenshot «prima»
 - [x] **1. La home mostra i quadri** — un'opera simbolo per ogni sala in `#moveList`
 - [x] **2. Transizioni tra le viste** — View Transitions API, miniatura ↔ quadro
-- [ ] **3. (non indicato)** — la richiesta parla di «tre punti» ma ne elenca due: il terzo resta da chiedere al proprietario
 - [x] **Chiusura** — verifica con Playwright (1440×900 e 390×844), `app-version` da 17 a 18
 
 Il branch **non è unito a `main`**: la versione pubblicata su GitHub Pages non cambia finché non lo decide il proprietario.
@@ -55,7 +54,6 @@ Il branch **non è unito a `main`**: la versione pubblicata su GitHub Pages non 
 
 ## Problemi aperti
 
-- Terzo punto della richiesta non specificato.
 - Errori di rete in console che c'erano già e non dipendono da queste modifiche: immagini dell'Art Institute of Chicago bloccate (`ERR_BLOCKED_BY_RESPONSE.NotSameOrigin`), ogni tanto 429/502 di Wikidata sotto carico (durante le prove hanno lasciato alcune copertine su «Carico…» finché non si è sbloccata) e un errore CORS dell'API di Cleveland.
 - Il passaggio miniatura → quadro è stato provato solo in Chromium. Safari e Firefox recenti hanno la stessa API ma non sono stati provati qui.
 - Sulla porta 8765 del PC c'è un altro server locale (non di questo lavoro) che serve la versione vecchia: le prove si sono fatte sulla 8791.
