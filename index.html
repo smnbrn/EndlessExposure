@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Endless Exposure">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#18211f">
-<meta name="app-version" content="18">
+<meta name="app-version" content="19">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Instrument+Sans:wght@400;500;600&display=swap">
@@ -1744,14 +1744,13 @@
   const SYM_KEY = 'ee.symbols.v1', SYM_TTL = 30 * 864e5;
   /* Opere molto note ma poco adatte a fare da insegna in mezzo alla pianta. */
   const SYM_SKIP = ['wd-Q334138'];
-  /* sala: [opera, artista, titolo, file su Commons] — risultato dell'interrogazione qui sotto al 15/11/2026. */
+  /* sala: [opera, artista, titolo, file su Commons] — risultato dell'interrogazione qui sotto al 15/11/2026 (con il filtro del pubblico dominio). */
   const SYM_SEED = {
     'protorinascimento': ['wd-Q979440', 'simone-martini', 'Annunciazione tra i santi Ansano e Margherita', 'Simone Martini — Annunciation with St. Margaret and St. Ansanus.jpg'],
     'rinascimento-italiano': ['wd-Q12418', 'leonardo-da-vinci', 'La Gioconda', 'Mona Lisa, by Leonardo da Vinci, from C2RMF retouched.jpg'],
     'rinascimento-veneziano': ['wd-Q727875', 'tiziano', 'Venere di Urbino', "Tiziano's Venere di Urbino (from The History BLog).jpg"],
     'manierismo': ['wd-Q94802', 'el-greco', 'La sepoltura del conte di Orgaz', 'El Greco - The Burial of the Count of Orgaz.JPG'],
     'rinascimento-nordico': ['wd-Q321303', 'hieronymus-bosch', 'Trittico del Giardino delle delizie', 'The Garden of Earthly Delights by Bosch High Resolution 2.jpg'],
-    'barocco': ['wd-Q185372', 'johannes-vermeer', "Ragazza con l'orecchino di perla", '1665 Girl with a Pearl Earring.jpg'],
     'rococo': ['wd-Q2629559', 'jean-honore-fragonard', "I fortunati casi dell'altalena", 'Fragonard, The Swing.jpg'],
     'neoclassicismo': ['wd-Q1752990', 'jacques-louis-david', 'Morte di Socrate', 'The Death of Socrates MET DP-13139-001.jpg'],
     'romanticismo': ['wd-Q29530', 'eugene-delacroix', 'La Libertà che guida il popolo', 'La Liberté guidant le peuple - Eugène Delacroix - Musée du Louvre Peintures RF 129 - après restauration 2024.jpg'],
@@ -1761,7 +1760,30 @@
     'postimpressionismo': ['wd-Q45585', 'vincent-van-gogh', 'Notte stellata', 'Van Gogh - Starry Night - Google Art Project.jpg'],
     'neoimpressionismo': ['wd-Q1044742', 'georges-seurat', "Una domenica pomeriggio sull'isola della Grande-Jatte", 'A Sunday on La Grande Jatte, Georges Seurat, 1884.jpg'],
     'simbolismo': ['wd-Q698487', 'gustav-klimt', 'Il bacio', 'The Kiss - Gustav Klimt - Google Cultural Institute.jpg'],
-    'avanguardie': ['wd-Q3877556', 'amedeo-modigliani', 'Nu couché', 'Modigliani - Nu couché.jpg'],
+    'gotico-internazionale': ['wd-Q1055117', 'gentile-da-fabriano', 'Adorazione dei Magi', 'Gentile da Fabriano - Adorazione dei Magi - Google Art Project.jpg'],
+    'barocco-italiano': ['wd-Q969377', 'caravaggio', 'Vocazione di san Matteo', 'Caravaggio — The Calling of Saint Matthew.jpg'],
+    'barocco-fiammingo': ['wd-Q2653851', 'pieter-paul-rubens', 'Innalzamento della Croce', 'Peter Paul Rubens - Raising of the Cross (Cathedral of Antwerp).jpg'],
+    'secolo-oro-olandese': ['wd-Q185372', 'johannes-vermeer', "Ragazza con l'orecchino di perla", '1665 Girl with a Pearl Earring.jpg'],
+    'siglo-de-oro': ['wd-Q208758', 'diego-velazquez', 'Las Meninas', 'Las Meninas, by Diego Velázquez, from Prado in Google Earth.jpg'],
+    'classicismo-francese': ['wd-Q377810', 'nicolas-poussin', "L'Adorazione del Vitello d'oro", "Nicolas poussin, adorazione del vitello d'oro, 1633-34FXD.jpg"],
+    'settecento-inglese': ['wd-Q604761', 'thomas-gainsborough', 'Il ragazzo in azzurro', 'Thomas Gainsborough - The Blue Boy (c. 1770).jpg'],
+    'hudson-river': ['wd-Q334604', 'frederic-edwin-church', 'Il cuore delle Ande', 'Church Heart of the Andes.jpg'],
+    'macchiaioli': ['wd-Q1121644', 'giovanni-fattori', 'Barrocci romani', 'Barrocci romani by Giovanni Fattori.jpg'],
+    'preraffaelliti': ['wd-Q1065493', 'john-everett-millais', 'Ophelia', 'John Everett Millais - Ophelia - Google Art Project.jpg'],
+    'accademica': ['wd-Q1283024', 'william-adolphe-bouguereau', 'Nascita di Venere', 'William-Adolphe Bouguereau (1825-1905) - The Birth of Venus (1879).jpg'],
+    'pittura-russa': ['wd-Q478271', 'il-ja-repin', "I Cosacchi dello Zaporož'e scrivono una lettera al Sultano di Turchia", 'Ilja Jefimowitsch Repin - Reply of the Zaporozhian Cossacks - Yorck.jpg'],
+    'realismo-americano': ['wd-Q687182', 'james-mcneill-whistler', 'Arrangiamento in grigio e nero, ritratto n. 1', 'Whistlers Mother high res.jpg'],
+    'nabis': ['wd-Q47010031', 'pierre-bonnard', 'Nude against the light', 'Nu à contre-jour - Pierre Bonnard.jpg'],
+    'divisionismo': ['wd-Q1199809', 'giuseppe-pellizza-da-volpedo', 'Il quarto stato', 'Quarto Stato.jpg'],
+    'pittura-scandinava': ['wd-Q18085208', 'peder-severin-kroyer', "Summer Evening on Skagen's Southern Beach", "P.S. Krøyer - Summer evening on Skagen's Beach. Anna Ancher and Marie Krøyer walking together. - Google Art Project.jpg"],
+    'fauvismo': ['wd-Q1437492', 'henri-matisse', 'Donna con cappello', 'Matisse-Woman-with-a-Hat.jpg'],
+    'espressionismo': ['wd-Q1555137', 'egon-schiele', 'Portrait of Wally', 'Egon Schiele - Portrait of Wally Neuzil - Google Art Project.jpg'],
+    'cubismo-orfismo': ['wd-Q6461080', 'juan-gris', 'The Bottle of Anís del Mono', "Juan Gris - La bouteille d'anis - Google Art Project.jpg"],
+    'futurismo': ['wd-Q587514', 'umberto-boccioni', 'La città che sale', 'The City Rises by Umberto Boccioni 1910.jpg'],
+    'scuola-di-parigi': ['wd-Q3877556', 'amedeo-modigliani', 'Nu couché', 'Modigliani - Nu couché.jpg'],
+    'astrattismo-russo': ['wd-Q1170315', 'kazimir-malevic', 'Quadrato nero', 'Чёрный супрематический квадрат. 1915. ГТГ.png'],
+    'dada': ['wd-Q20191695', 'francis-picabia', 'The Procession, Seville', 'Francis Picabia, 1912, The Procession, Seville, oil on canvas, 121.9 x 121.9 cm, National Gallery of Art, Washington DC.jpg'],
+    'de-stijl': ['wd-Q3818263', 'piet-mondrian', "L'albero rosso", 'Piet Mondrian, 1908-10, Evening; Red Tree (Avond; De rode boom), oil on canvas, 70 x 99 cm, Gemeentemuseum Den Haag.jpg'],
   };
   /* La scelta scritta vale solo finché quell'artista è ancora in quella sala. */
   const seedOf = (m) => {
