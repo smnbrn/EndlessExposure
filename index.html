@@ -387,7 +387,9 @@
   .resume a { color: var(--soft); text-underline-offset: 3px; }
   .resume a i { font-family: var(--f-display); font-size: 1rem; }
   /* L'opera del giorno, appesa all'ingresso sotto la sua luce */
-  .today { position: relative; display: grid; justify-items: center; gap: 16px; padding-top: 6px; }
+  .today { --today-h: min(42vh, 380px); position: relative; display: grid; justify-items: center; align-content: end; gap: 16px; padding-top: 6px; }
+  /* Su schermi larghi il posto del quadro e del suo cartellino è riservato: quando l'immagine arriva, sotto non si sposta niente. */
+  @media (min-width: 861px) { .today { min-height: calc(var(--today-h) + 101px); } }
   .today::before {
     content: ""; position: absolute; left: 50%; top: -40px; width: 150%; height: 130%; transform: translateX(-50%);
     background: radial-gradient(ellipse 50% 50% at 50% 42%, rgba(var(--lamp), .1), transparent 72%); pointer-events: none;
@@ -399,7 +401,7 @@
   }
   #todayBtn:hover { transform: translateY(-3px); }
   #todayBtn:focus-visible { outline: 2px solid var(--patina); outline-offset: 6px; }
-  #todayBtn img { display: block; max-width: 100%; max-height: min(46vh, 430px); width: auto; height: auto; }
+  #todayBtn img { display: block; max-width: 100%; max-height: var(--today-h); width: auto; height: auto; }
   #todayBtn.sk { width: min(100%, 380px); aspect-ratio: 5 / 4; background: var(--wall-hi); overflow: hidden; cursor: default; }
   #todayBtn.sk::after, .sk-t::after {
     content: ""; position: absolute; inset: 0;
@@ -416,8 +418,7 @@
   .tag span { display: block; font-size: .78rem; margin-top: 1px; }
   @media (max-width: 860px) {
     .hero { grid-template-columns: 1fr; }
-    .today { order: 2; margin-top: 8px; }
-    #todayBtn img { max-height: 44vh; }
+    .today { --today-h: 44vh; order: 2; margin-top: 8px; }
   }
 
   .find {
@@ -433,12 +434,19 @@
   /* Pianta: le sale lungo sei secoli */
   .rows { list-style: none; margin: 0; padding: 0; }
   .rows li { border-bottom: 1px solid var(--line); }
-  .axis { display: grid; grid-template-columns: minmax(0, 310px) minmax(0, 1fr) 76px 14px; gap: 22px; align-items: center; padding: 0 10px 4px; border-bottom: 1px solid var(--line); }
+  .axis { display: grid; grid-template-columns: 52px minmax(0, 310px) minmax(0, 1fr) 76px 14px; gap: 18px; align-items: center; padding: 0 10px 4px; border-bottom: 1px solid var(--line); }
   .row {
     all: unset; box-sizing: border-box; width: 100%; cursor: pointer;
-    display: grid; grid-template-columns: minmax(0, 310px) minmax(0, 1fr) 76px 14px; gap: 22px; align-items: center;
-    padding: 13px 10px; border-radius: 8px; transition: background .15s ease;
+    display: grid; grid-template-columns: 52px minmax(0, 310px) minmax(0, 1fr) 76px 14px; gap: 18px; align-items: center;
+    padding: 10px; border-radius: 8px; transition: background .15s ease;
   }
+  /* L'opera simbolo della sala: un quadretto appeso accanto al nome. Il posto c'è da subito, così niente salta quando arriva. */
+  .th { position: relative; display: block; width: 52px; height: 52px; overflow: hidden; background: var(--wall-hi); box-shadow: 0 10px 18px -10px var(--shadow); }
+  .th::after { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08); }
+  .th img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; transition: transform .6s var(--ease), opacity .5s ease; }
+  .th img.in0 { opacity: 0; }
+  .row:hover .th img { transform: scale(1.06); }
+  .row .n .yr { display: none; }
   .row:hover { background: var(--chip); }
   .row:focus-visible { outline: 2px solid var(--patina); outline-offset: -2px; }
   .row .nm { min-width: 0; }
@@ -446,7 +454,7 @@
   .row .nm small { display: block; margin-top: 3px; color: var(--muted); font-size: .8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .row .n { color: var(--muted); font-size: .8rem; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
   .row .chev { color: var(--muted); }
-  .row.plain { grid-template-columns: 112px minmax(0, 1fr) auto 14px; }
+  .row.plain { grid-template-columns: 112px minmax(0, 1fr) auto 14px; gap: 22px; padding: 13px 10px; }
   .row .yrs { color: var(--muted); font-size: .82rem; font-variant-numeric: tabular-nums; }
   .track { position: relative; display: block; height: 36px; }
   .track::before { content: ""; position: absolute; left: 0; right: 0; top: 25px; height: 1px; background: var(--line); }
@@ -457,18 +465,28 @@
   .axis .track { height: 18px; }
   .axis .track::before { display: none; }
   .axis .track em { font-size: .7rem; transform: translateX(-50%); }
-  .rows li.child .row { padding-left: 34px; grid-template-columns: minmax(0, 286px) minmax(0, 1fr) 76px 14px; }
+  .rows li.child .row { padding-left: 34px; grid-template-columns: 52px minmax(0, 286px) minmax(0, 1fr) 76px 14px; }
   .rows li.child .nm b { font-size: 1.16rem; }
   .rows li.child .nm b::before { content: "↳ "; color: var(--muted); font-family: var(--f-ui); font-size: .9rem; }
   @media (max-width: 760px) {
     .axis { display: none; }
-    .row { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; padding: 12px 4px 10px; }
-    .row .track { grid-column: 1 / -1; grid-row: 2; height: 30px; }
-    .track::before { top: 23px; } .track i { top: 20px; }
+    /* Telefono: miniatura a sinistra; a destra il nome, poi artisti e anni sulla stessa riga, poi la barra del tempo.
+       La riga resta entro i 72 px: il nome non va mai a capo. */
+    .row { grid-template-columns: 48px minmax(0, 1fr) auto; gap: 1px 12px; padding: 9px 4px; }
+    .th { width: 48px; height: 48px; grid-row: 1 / 4; }
+    .row:not(.plain) .nm { display: contents; }
+    .row:not(.plain) .nm b { grid-column: 2 / -1; font-size: 1.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rows li.child .row .nm b { font-size: 1.1rem; }
+    .row:not(.plain) .nm small { grid-column: 2; grid-row: 2; margin-top: 0; font-size: .78rem; line-height: 1.4; }
+    .row:not(.plain) .n { grid-column: 3; grid-row: 2; }
+    .row .n .cnt { display: none; } .row .n .yr { display: inline; }
+    .row .track { grid-column: 2 / -1; grid-row: 3; height: 7px; margin-top: 3px; }
+    .track::before { top: 3px; } .track i { top: 0; }
+    .row .track em { display: none; }
     .row .chev { display: none; }
-    .row.plain { grid-template-columns: minmax(0, 1fr) auto; }
+    .row.plain { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; padding: 12px 4px 10px; }
     .row.plain .yrs { grid-row: 2; grid-column: 1; }
-    .rows li.child .row { padding-left: 20px; grid-template-columns: minmax(0, 1fr) auto; }
+    .rows li.child .row { padding-left: 20px; grid-template-columns: 48px minmax(0, 1fr) auto; }
     .rows li.child .row .track { margin-left: -16px; }
   }
   .credits { margin: 40px 0 0; color: var(--muted); font-size: .76rem; line-height: 1.6; max-width: 86ch; }
@@ -666,7 +684,7 @@
     <input id="find" class="find" type="search" placeholder="Cerca un movimento o un artista…" aria-label="Cerca un movimento o un artista" autocomplete="off" enterkeyhint="search">
     <div id="artistHits" hidden><p class="sec-k">Artisti</p><ul class="rows" id="artistHitList"></ul></div>
     <p class="sec-k" id="moveK">Le sale, dal 1260 al 1930</p>
-    <div class="axis" id="axis" aria-hidden="true"><span></span><span class="track"></span><span></span><span></span></div>
+    <div class="axis" id="axis" aria-hidden="true"><span></span><span></span><span class="track"></span><span></span><span></span></div>
     <ul class="rows" id="moveList"></ul>
     <p class="credits">Opere da <a href="https://www.wikidata.org" target="_blank" rel="noopener">Wikidata</a> e <a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>, più le collezioni aperte del <a href="https://www.clevelandart.org/open-access" target="_blank" rel="noopener">Cleveland Museum of Art</a>, del <a href="https://www.metmuseum.org/hubs/open-access" target="_blank" rel="noopener">Metropolitan Museum of Art</a> e dell'<a href="https://www.artic.edu/open-access" target="_blank" rel="noopener">Art Institute of Chicago</a>: solo opere di pubblico dominio. I testi su artisti e opere vengono da <a href="https://it.wikipedia.org" target="_blank" rel="noopener">Wikipedia</a> (CC BY-SA). Lo zoom usa i server IIIF dei musei quando offrono più dettaglio. <span id="ver"></span></p>
   </div>
@@ -929,7 +947,7 @@
   const yrsOf = (m) => m.from + '–' + m.to;
 
   /* ---------- Rete: una coda per museo, per rispettare i limiti (AIC: 60 richieste al minuto) ---------- */
-  const GAP = { aic: 1050, met: 250, cma: 120, wd: 300, wp: 150 }, nextAt = { aic: 0, met: 0, cma: 0, wd: 0, wp: 0 };
+  const GAP = { aic: 1050, met: 250, cma: 120, wd: 300, wp: 150, sym: 150 }, nextAt = { aic: 0, met: 0, cma: 0, wd: 0, wp: 0, sym: 0 };
   const memo = new Map();
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   async function getJSON(host, url) {
@@ -937,7 +955,7 @@
     const wait = Math.max(0, nextAt[host] - Date.now());
     nextAt[host] = Date.now() + wait + GAP[host];
     if (wait) await sleep(wait);
-    const res = await fetch(url, { headers: { Accept: host === 'wd' && url.startsWith(WD_SPARQL) ? 'application/sparql-results+json' : 'application/json' } });
+    const res = await fetch(url, { headers: { Accept: url.startsWith(WD_SPARQL) ? 'application/sparql-results+json' : 'application/json' } });
     if (!res.ok) { const e = new Error('HTTP ' + res.status); e.status = res.status; throw e; }
     const data = await res.json();
     memo.set(url, data);
@@ -1372,6 +1390,100 @@
     go(h);
   }
 
+  /* ---------- L'opera simbolo di ogni sala ----------
+     La più nota (stesso criterio di "Le più note": il numero di voci di Wikipedia) tra i dipinti degli artisti della sala.
+     Per le sale di oggi la scelta è già scritta qui sotto (SYM_SEED), così la pianta non aspetta Wikidata, che la prima
+     volta risponde in 1–3 secondi e a volte in più di 9. Per una sala nuova, o se l'immagine scritta qui non esiste più,
+     si chiede a Wikidata: una sola interrogazione leggera per sala, quando la riga sta per entrare nello schermo e al
+     massimo due insieme, in una coda a parte per non rallentare le sale e gli artisti; il risultato resta sul
+     dispositivo per un mese. */
+  const SYM_KEY = 'ee.symbols.v1', SYM_TTL = 30 * 864e5;
+  /* Opere molto note ma poco adatte a fare da insegna in mezzo alla pianta. */
+  const SYM_SKIP = ['wd-Q334138'];
+  /* sala: [opera, artista, titolo, file su Commons] — risultato dell'interrogazione qui sotto al 15/11/2026. */
+  const SYM_SEED = {
+    'protorinascimento': ['wd-Q979440', 'simone-martini', 'Annunciazione tra i santi Ansano e Margherita', 'Simone Martini — Annunciation with St. Margaret and St. Ansanus.jpg'],
+    'rinascimento-italiano': ['wd-Q12418', 'leonardo-da-vinci', 'La Gioconda', 'Mona Lisa, by Leonardo da Vinci, from C2RMF retouched.jpg'],
+    'rinascimento-veneziano': ['wd-Q727875', 'tiziano', 'Venere di Urbino', "Tiziano's Venere di Urbino (from The History BLog).jpg"],
+    'manierismo': ['wd-Q94802', 'el-greco', 'La sepoltura del conte di Orgaz', 'El Greco - The Burial of the Count of Orgaz.JPG'],
+    'rinascimento-nordico': ['wd-Q321303', 'hieronymus-bosch', 'Trittico del Giardino delle delizie', 'The Garden of Earthly Delights by Bosch High Resolution 2.jpg'],
+    'barocco': ['wd-Q185372', 'johannes-vermeer', "Ragazza con l'orecchino di perla", '1665 Girl with a Pearl Earring.jpg'],
+    'rococo': ['wd-Q2629559', 'jean-honore-fragonard', "I fortunati casi dell'altalena", 'Fragonard, The Swing.jpg'],
+    'neoclassicismo': ['wd-Q1752990', 'jacques-louis-david', 'Morte di Socrate', 'The Death of Socrates MET DP-13139-001.jpg'],
+    'romanticismo': ['wd-Q29530', 'eugene-delacroix', 'La Libertà che guida il popolo', 'La Liberté guidant le peuple - Eugène Delacroix - Musée du Louvre Peintures RF 129 - après restauration 2024.jpg'],
+    'realismo': ['wd-Q540488', 'gustave-courbet', 'Funerale a Ornans', 'Gustave Courbet - A Burial at Ornans - Google Art Project.jpg'],
+    'barbizon': ['wd-Q24283', 'camille-corot', 'Il ponte di Narni', 'Le pont de Narni - Jean-Baptiste Camille Corot - Musée du Louvre Peintures RF 1613 - photo 2.jpg'],
+    'impressionismo': ['wd-Q328523', 'claude-monet', 'Impressione. Levar del sole', 'Monet - Impression, Sunrise.jpg'],
+    'postimpressionismo': ['wd-Q45585', 'vincent-van-gogh', 'Notte stellata', 'Van Gogh - Starry Night - Google Art Project.jpg'],
+    'neoimpressionismo': ['wd-Q1044742', 'georges-seurat', "Una domenica pomeriggio sull'isola della Grande-Jatte", 'A Sunday on La Grande Jatte, Georges Seurat, 1884.jpg'],
+    'simbolismo': ['wd-Q698487', 'gustav-klimt', 'Il bacio', 'The Kiss - Gustav Klimt - Google Cultural Institute.jpg'],
+    'avanguardie': ['wd-Q3877556', 'amedeo-modigliani', 'Nu couché', 'Modigliani - Nu couché.jpg'],
+  };
+  /* La scelta scritta vale solo finché quell'artista è ancora in quella sala. */
+  const seedOf = (m) => {
+    const x = SYM_SEED[m.id], a = x && artistBySlug.get(x[1]);
+    return a && a.move === m ? { t: 0, id: x[0], slug: a.slug, title: x[2], artist: a.n, file: x[3] } : null;
+  };
+  const symCache = load(SYM_KEY) || {}, symP = new Map();
+  const symQ = [];
+  let symBusy = 0;
+  function symPump() {
+    while (symBusy < 2 && symQ.length) { symBusy++; symQ.shift()().finally(() => { symBusy--; symPump(); }); }
+  }
+  const symRun = (fn) => new Promise((res, rej) => { symQ.push(() => fn().then(res, rej)); symPump(); });
+  const symbolQuery = (m) => `SELECT ?item ?artist ?image ?sitelinks ?itemLabel ?en WHERE {
+      { SELECT ?item ?artist ?image ?sitelinks WHERE {
+          VALUES ?artist { ${m.artists.filter((a) => a.w).map((a) => 'wd:' + a.w).join(' ')} }
+          VALUES ?type { ${WD_PAINT.map((q) => 'wd:' + q).join(' ')} }
+          ?item wdt:P170 ?artist; wdt:P31 ?type; wdt:P18 ?image; wikibase:sitelinks ?sitelinks.
+        } ORDER BY DESC(?sitelinks) LIMIT 8 }
+      OPTIONAL { ?item rdfs:label ?itemLabel FILTER(LANG(?itemLabel) = "it") }
+      OPTIONAL { ?item rdfs:label ?en FILTER(LANG(?en) = "en") }
+    } ORDER BY DESC(?sitelinks)`;
+  function symbolOf(m) {
+    const c = symCache[m.id];
+    if (c && Date.now() - c.t < SYM_TTL) return Promise.resolve(c);
+    if (!symP.has(m.id)) symP.set(m.id, symRun(async () => {
+      const withQid = m.artists.filter((a) => a.w);
+      if (!withQid.length) return null;
+      /* Se nel frattempo si è usciti dalla pianta non si chiede niente; una risposta che tarda più di 9 secondi si lascia perdere. */
+      if (view !== 'hall') throw new Error('altrove');
+      const d = await Promise.race([
+        getJSON('sym', WD_SPARQL + '?' + new URLSearchParams({ query: symbolQuery(m), format: 'json' })),
+        sleep(9000).then(() => { throw new Error('lenta'); }),
+      ]);
+      const rows = (d.results && d.results.bindings) || [];
+      /* Le righe passano da wdRows, come le opere di un artista: stessi controlli sul file, stesso titolo, stessa "fama". */
+      const works = withQid.flatMap((a) => wdRows(a, rows.filter((b) => b.artist.value.endsWith('/' + a.w))).map((w) => [w, a]))
+        .filter(([w]) => !SYM_SKIP.includes(w.id)).sort((x, y) => y[0].fame - x[0].fame);
+      const s = { t: Date.now(), id: '', slug: '', title: '', artist: '', file: '' };
+      if (works.length) { const [w, a] = works[0]; Object.assign(s, { id: w.id, slug: a.slug, title: w.title, artist: a.n, file: w.file }); }
+      symCache[m.id] = s; store(SYM_KEY, symCache);
+      return s;
+    }).catch(() => { symP.delete(m.id); return null; }));
+    return symP.get(m.id);
+  }
+  async function fillSymbol(li, noSeed) {
+    const m = moveById.get(li.dataset.id), th = li.querySelector('.th');
+    if (!m || !th) return;
+    /* Nell'ordine: ciò che Wikidata ha già risposto su questo dispositivo, la scelta scritta nel file, una nuova domanda. */
+    const c = symCache[m.id];
+    const seed = (c && Date.now() - c.t < SYM_TTL) || noSeed ? null : seedOf(m);
+    const s = seed || await symbolOf(m);
+    /* Rete o Wikidata in difficoltà: si riprova più tardi, al massimo due volte, se la riga è ancora in vista. */
+    if (!s && symIO) { const k = Number(li.dataset.retry || 0); if (k < 2) { li.dataset.retry = String(k + 1); setTimeout(() => symIO.observe(li), 12000 * (k + 1)); } }
+    if (!s || !s.file || th.firstChild) return;
+    const im = el('img', 'in0'); im.alt = ''; im.loading = 'lazy'; im.decoding = 'async';
+    im.addEventListener('load', () => im.classList.remove('in0'), { once: true });
+    im.addEventListener('error', () => { im.remove(); if (seed) fillSymbol(li, true); }, { once: true });
+    im.src = FILEPATH + encodeURIComponent(s.file) + '?width=250';
+    th.title = s.title + ' — ' + s.artist;
+    th.appendChild(im);
+  }
+  const symIO = 'IntersectionObserver' in window
+    ? new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { symIO.unobserve(e.target); fillSymbol(e.target); } }), { rootMargin: '200px 0px' })
+    : null;
+
   /* ---------- Pianta del museo ---------- */
   const moveList = $('#moveList'), find = $('#find');
   /* L'asse copre tutte le sale, con un piccolo margine: aggiungendo una sala più antica o più recente si allarga da solo. */
@@ -1401,14 +1513,18 @@
     orderedMovements().forEach((m) => {
       const li = el('li', m.parent ? 'child' : '');
       li.dataset.key = norm(m.name + ' ' + m.desc + ' ' + m.artists.map((a) => a.n + ' ' + a.q).join(' '));
+      li.dataset.id = m.id;
       const b = el('button', 'row'); b.type = 'button';
+      const th = el('span', 'th'); th.setAttribute('aria-hidden', 'true');
+      const cnt = el('span', 'n'); cnt.append(el('span', 'cnt', m.artists.length + ' artisti'), el('span', 'yr', yrsOf(m)));
       const nm = el('span', 'nm');
       nm.append(el('b', '', m.name), el('small', '', m.artists.slice(0, 4).map((a) => a.n).join(', ') + (m.artists.length > 4 ? '…' : '')));
       const chev = el('span', 'chev', '›'); chev.setAttribute('aria-hidden', 'true');
-      b.append(nm, trackFor(m.from, m.to), el('span', 'n', m.artists.length + ' artisti'), chev);
+      b.append(th, nm, trackFor(m.from, m.to), cnt, chev);
       b.addEventListener('click', () => go('#m/' + m.id));
       li.appendChild(b);
       moveList.appendChild(li);
+      if (symIO) symIO.observe(li); else fillSymbol(li);
     });
     $('#ver').textContent = 'Versione ' + VERSION + '.';
   }
