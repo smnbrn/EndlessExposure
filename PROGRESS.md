@@ -31,6 +31,36 @@ Il branch **non è unito a `main`**: la versione pubblicata su GitHub Pages non 
 - Soglie: `PD_DEATH = anno − 71`, `PD_WORK = anno − 96`. Artisti oltre la soglia tolti all'avvio; opere filtrate in `allWorks` (anno più tardo scritto nella data), anche nella collezione (nascoste, non cancellate), opera del giorno e opere simbolo.
 - Titolo «Le sale, dal 1260 al 1930» calcolato da dati e soglia.
 
+### Conteggio opere per sala (prima passata, 15/11/2026, dall'app in Chromium, tutte le fonti)
+Nessuna opera mostrata oltre la soglia del 1930 in nessuna sala. Numeri **provvisori**: la prova girava con 3 pagine in parallelo mentre Wikidata limitava le richieste, e gli zeri di artisti famosi (Guercino, Murillo, Ribera, Reynolds, Rossetti, Waterhouse, Repin, Franz Marc, Beckmann, Delaunay) sono quasi certamente richieste fallite, non assenze. Da ripetere con una pagina sola prima di unire sale.
+
+| Sala | Opere | Artisti con opere |
+|---|---|---|
+| Gotico internazionale | 52 | 2/2 |
+| Barocco italiano | 745 | 6/7 |
+| Barocco fiammingo | 723 | 4/4 |
+| Secolo d'oro olandese | 1021 | 5/5 |
+| Siglo de Oro spagnolo | 378 | 2/4 |
+| Classicismo francese | 382 | 2/2 |
+| Settecento inglese | 506 | 4/5 |
+| Paesaggio sublime americano | 141 | 2/3 |
+| Macchiaioli | 7 | 2/3 |
+| Preraffaelliti | 6 | 2/4 |
+| Pittura accademica | 13 | 3/4 |
+| Pittura russa | 204 | 3/4 |
+| Realismo americano | 6 | 3/3 |
+| Nabis | 222 | 2/2 |
+| Divisionismo italiano | 5 | 2/3 |
+| Pittura scandinava | 27 | 3/3 |
+| Fauvismo | 17 | 3/4 |
+| Espressionismo | 365 | 10/12 |
+| Cubismo e Orfismo | 8 | 4/6 |
+| Futurismo | 2 | 2/2 |
+| Scuola di Parigi | 15 | 4/4 |
+| Astrattismo russo | 282 | 4/4 |
+| Dada | 35 | 3/3 |
+| De Stijl | 121 | 2/2 |
+
 ### 2. «Entrati nel museo quest'anno»
 - In home sotto le sale: artisti morti nel `PD_DEATH` (nel 2026 Pechstein e Léger) e opere del `PD_WORK` (una interrogazione Wikidata, cache `ee.newyear.v1` per 14 giorni). Meno di 2 voci: nascosta.
 
