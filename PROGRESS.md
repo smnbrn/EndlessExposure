@@ -15,8 +15,8 @@ Il branch **non è unito a `main`**: la versione pubblicata su GitHub Pages non 
 ## Checklist
 
 - [~] **1. Nuove sale e artisti** — scritto e provato (38 sale, redirect ok, titolo dinamico). Manca: conteggio opere per sala (`rooms.js`, interrotto), `SYM_SEED` per le sale nuove, unione delle sale con meno di 2 artisti con opere
-- [~] **2. «Entrati nel museo quest'anno»** — scritto, non ancora provato nel browser
-- [~] **3. Rijksmuseum** — integrato e provato su Rembrandt (CORS aperto, IIIF v3 di micr.io); manca la prova dello zoom OpenSeadragon
+- [x] **2. «Entrati nel museo quest'anno»** — provato: Pechstein e Léger, 8 opere del 1930, apertura dell'opera, seconda visita dalla cache (0 richieste)
+- [x] **3. Rijksmuseum** — integrato e provato su Rembrandt (CORS aperto); zoom OpenSeadragon sul IIIF v3 di micr.io provato (anche SMK, IIIF 2)
 - [x] **4. Altre fonti europee** — verificate; SMK integrato (vedi sotto)
 - [ ] **Chiusura** — verifica con Playwright, `app-version` 19
 
