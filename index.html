@@ -595,13 +595,30 @@
   body:not([data-view="work"]) #msg { bottom: calc(var(--bottom) + 16px); }
   @keyframes msg { from { opacity: 0; transform: translate(-50%, 6px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
-  /* Passaggi tra le pagine: dissolvenza, e il quadro che esce dalla parete verso la sala. */
+  /* Passaggi tra le viste (View Transitions API): la pagina che arriva sale dal basso quando si entra più a fondo
+     (pianta → sala → artista → opera) e scende dall'alto quando si torna; la miniatura toccata diventa il quadro e,
+     al ritorno, il quadro rientra nella sua miniatura. I nomi li assegna onHash solo per la durata del passaggio:
+     "hero" ai due elementi coinvolti, "topbar" alla barra in alto, che così resta ferma mentre sotto cambia la pagina.
+     Tutto tra 300 e 450 ms, con la curva --ease. Con "riduci movimento" onHash non avvia nessun passaggio. */
   @media (prefers-reduced-motion: no-preference) {
-    #paint { view-transition-name: hero; }
-    ::view-transition-old(root), ::view-transition-new(root) { animation-duration: .28s; }
-    ::view-transition-group(hero) { animation-duration: .48s; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
-    ::view-transition-old(hero), ::view-transition-new(hero) { width: 100%; height: 100%; object-fit: cover; }
+    html[data-vt] #topbar { view-transition-name: topbar; }
+    ::view-transition-group(*) { animation-duration: .34s; animation-timing-function: var(--ease); }
+    ::view-transition-old(*), ::view-transition-new(*) { animation-duration: .34s; animation-timing-function: var(--ease); }
+    ::view-transition-old(root) { animation: .3s var(--ease) both vt-fade-out; }
+    ::view-transition-new(root) { animation: .36s var(--ease) both vt-fade-in; }
+    html[data-vt="fwd"]::view-transition-old(root) { animation: .3s var(--ease) both vt-fade-out, .3s var(--ease) both vt-leave-up; }
+    html[data-vt="fwd"]::view-transition-new(root) { animation: .36s var(--ease) both vt-fade-in, .36s var(--ease) both vt-enter-up; }
+    html[data-vt="back"]::view-transition-old(root) { animation: .3s var(--ease) both vt-fade-out, .3s var(--ease) both vt-leave-down; }
+    html[data-vt="back"]::view-transition-new(root) { animation: .36s var(--ease) both vt-fade-in, .36s var(--ease) both vt-enter-down; }
+    ::view-transition-group(hero) { animation-duration: .42s; }
+    ::view-transition-old(hero), ::view-transition-new(hero) { animation-duration: .42s; width: 100%; height: 100%; object-fit: cover; }
   }
+  @keyframes vt-fade-in { from { opacity: 0; } }
+  @keyframes vt-fade-out { to { opacity: 0; } }
+  @keyframes vt-enter-up { from { translate: 0 16px; } }
+  @keyframes vt-leave-up { to { translate: 0 -8px; } }
+  @keyframes vt-enter-down { from { translate: 0 -12px; } }
+  @keyframes vt-leave-down { to { translate: 0 10px; } }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
     body.strolling #paint.drift { animation: none; }
@@ -1604,6 +1621,11 @@
     }
     loadToday();
     restoreScroll(pages.hall);
+    /* Tornando alla pianta dall'opera del giorno, il quadro rientra nel suo posto all'ingresso. */
+    if (inVT && lastSeen && today && lastSeen.ctx === today.slug && lastSeen.id === today.w.id) {
+      const im = $('#todayBtn img');
+      if (shownImg(im)) setHero(im);
+    }
   }
   $('#strollStart').addEventListener('click', () => strollFrom());
   $('#randomStart').addEventListener('click', () => random());
@@ -1815,7 +1837,12 @@
     return b;
   }
   /* Tornando da un'opera, la parete si ferma sull'ultima che hai guardato. */
-  let lastSeen = null, heroTile = null, inVT = false;
+  let lastSeen = null, inVT = false;
+  /* Gli elementi che in questo momento portano il nome condiviso "hero" (al massimo uno per volta a schermo). */
+  const heroEls = [];
+  function setHero(e) { e.style.viewTransitionName = 'hero'; heroEls.push(e); }
+  function clearHero() { heroEls.forEach((e) => { e.style.viewTransitionName = ''; }); heroEls.length = 0; }
+  const shownImg = (im) => !!(im && im.isConnected && im.complete && im.naturalWidth);
   function focusSeen(wall, ctx) {
     if (!lastSeen || lastSeen.ctx !== ctx) return;
     const t = wall.tiles.find((b) => b.dataset.id === lastSeen.id && !b.hidden);
@@ -1824,8 +1851,9 @@
     const r = t.getBoundingClientRect();
     if (r.top < 90 || r.bottom > innerHeight - 24) t.scrollIntoView({ block: 'center' });
     t.classList.remove('seen'); void t.offsetWidth; t.classList.add('seen');
+    /* Durante un passaggio: è in questa miniatura che il quadro rientra. */
     const im = t.querySelector('img');
-    if (inVT && im && im.complete && im.naturalWidth) { heroTile = im; im.style.viewTransitionName = 'hero'; }
+    if (inVT && shownImg(im)) setHero(im);
   }
 
   /* ---------- Pagina di un artista ---------- */
@@ -2703,27 +2731,45 @@
     if (k === 'c') return a ? showWork('c', a, hnt) : showColl();
     showHall();
   }
-  /* Dove il browser lo sa fare, le pagine sfumano una nell'altra e il quadro "vola" dalla parete alla sala. */
+  /* Dove il browser lo sa fare (View Transitions API), le viste passano una nell'altra e il quadro "vola" dalla parete
+     alla sala e ritorno. Senza l'API, o con "riduci movimento", si cambia vista e basta. */
   const canVT = typeof document.startViewTransition === 'function' && !reduceMotion;
-  function clearHero() { if (heroTile) { heroTile.style.viewTransitionName = ''; heroTile = null; } }
+  const DEPTH = { hall: 0, room: 1, coll: 1, artist: 2, work: 3 };
+  const depthOfHash = (h) => { const [k, a] = h.replace(/^#/, '').split('/'); return k === 'm' ? 1 : k === 'a' ? 2 : k === 'w' && a ? 3 : k === 'c' ? (a ? 3 : 1) : 0; };
+  let vtTok = 0;
   function onHash() {
     const hnt = hint, src = vtSrc;
     hint = null; vtSrc = null;
-    const stageToStage = view === 'work' && /^#(w|c)\/./.test(location.hash);
-    if (!canVT || stageToStage || document.hidden) { route(hnt); return; }
+    const toWork = /^#(w|c)\/./.test(location.hash);
+    /* Da un'opera all'altra ci pensa già paintWork con la sua dissolvenza. */
+    if (!canVT || (view === 'work' && toWork) || document.hidden) { route(hnt); return; }
+    const root = document.documentElement, from = DEPTH[view] || 0, to = depthOfHash(location.hash), my = ++vtTok;
+    const done = () => { if (my !== vtTok) return; clearHero(); delete root.dataset.vt; };
     clearHero();
-    if (src) src.style.viewTransitionName = 'hero';
+    root.dataset.vt = to > from ? 'fwd' : to < from ? 'back' : 'same';
+    /* Prima del passaggio il nome va all'elemento di partenza: la miniatura toccata, oppure il quadro quando si torna
+       (il pulsante intero, così il quadro si porta dietro la sua ombra). */
+    if (toWork) { if (shownImg(src)) setHero(src); }
+    else if (view === 'work' && paint.getAttribute('src')) setHero(paintBtn);
     let t = null;
     try {
-      t = document.startViewTransition(() => {
-        inVT = true;
+      t = document.startViewTransition(async () => {
+        /* La vista vecchia è già stata fotografata: ora il nome passa all'elemento di arrivo. */
+        const hadHero = heroEls.length > 0;
+        clearHero();
+        inVT = hadHero;
         let p;
-        try { p = route(hnt); } finally { inVT = false; if (src) src.style.viewTransitionName = ''; }
-        return Promise.race([Promise.resolve(p).catch(() => {}), sleep(280)]);
+        try { p = route(hnt); } finally { inVT = false; }
+        const landing = toWork && hadHero && hnt && hnt.url;
+        if (landing) setHero(paintBtn);
+        /* Se i dati dell'opera non sono ancora sul dispositivo non si tiene fermo lo schermo: dopo 280 ms si prosegue. */
+        await Promise.race([Promise.resolve(p).catch(() => {}), sleep(280)]);
+        if (landing && paint.getAttribute('src')) await Promise.race([paint.decode().catch(() => {}), sleep(160)]);
       });
-    } catch (_) { if (src) src.style.viewTransitionName = ''; route(hnt); return; }
+    } catch (_) { done(); route(hnt); return; }
     if (t.ready) t.ready.catch(() => {});
-    t.finished.catch(() => {}).then(clearHero);
+    if (t.updateCallbackDone) t.updateCallbackDone.catch(() => {});
+    t.finished.catch(() => {}).then(done);
   }
   window.addEventListener('hashchange', onHash);
 

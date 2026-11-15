@@ -6,7 +6,7 @@ Lavoro sull'estetica di `index.html`. Lo stile esistente si mantiene (palette, B
 
 - [x] **0. Base** — `index.html` allineato al file più recente del proprietario, screenshot «prima»
 - [x] **1. La home mostra i quadri** — un'opera simbolo per ogni sala in `#moveList`
-- [ ] **2. Transizioni tra le viste** — View Transitions API, miniatura ↔ quadro
+- [x] **2. Transizioni tra le viste** — View Transitions API, miniatura ↔ quadro
 - [ ] **3. (non indicato)** — la richiesta parla di «tre punti» ma ne elenca due: il terzo resta da chiedere al proprietario
 - [ ] **Chiusura** — verifica con Playwright (1440×900 e 390×844), console senza errori, `app-version` incrementata
 
@@ -23,8 +23,13 @@ Lavoro sull'estetica di `index.html`. Lo stile esistente si mantiene (palette, B
 - Immagini: `loading="lazy"`, larghezza 250 px da Commons, caricate solo quando la riga sta per entrare nello schermo (`IntersectionObserver`).
 - Opera del giorno: su schermi larghi il posto di quadro e cartellino è riservato (`--today-h`), così quando l'immagine arriva la pagina sotto non si sposta (prima: salto misurato 0,067; ora 0).
 
-### 2. Transizioni tra le viste (da fare)
-- Nel file c'è già una prima versione (`onHash`, `view-transition-name: hero` fisso su `#paint`, durate 0,28 s e 0,48 s). Da fare: nome assegnato solo all'elemento coinvolto, durate tra 300 e 450 ms con `--ease`, direzione avanti/indietro, ritorno anche verso l'opera del giorno.
+### 2. Transizioni tra le viste (fatto)
+-  avvia  a ogni cambio di vista (pianta ↔ sala ↔ artista ↔ opera, collezione). Da un'opera all'altra resta la dissolvenza di .
+- Elemento condiviso : il nome è assegnato da codice solo ai due elementi coinvolti e tolto a fine passaggio (prima era fisso su ). Andata: miniatura toccata → quadro. Ritorno: quadro → la sua miniatura nella parete (o nell'opera del giorno, tornando alla pianta).
+- Direzione: entrando più a fondo la vista nuova sale dal basso (), tornando scende dall'alto (); tra viste dello stesso livello solo dissolvenza.
+- Durate: 300 ms (vista che esce), 360 ms (vista che entra), 340 ms (barra in alto), 420 ms (quadro). Curva  ovunque.
+- : nessun passaggio avviato (provato: 0 chiamate). Senza l'API: cambio vista normale, nessun errore (provato togliendo ).
+- Prove automatiche (Playwright, Chromium, 1440×900 e 390×844): 9 passaggi per formato con elemento condiviso presente dove previsto, nomi tutti tolti alla fine; 23 controlli su hash, tasti R C M P I Z L F, frecce, Esc, zoom (anche OpenSeadragon sulla Notte stellata, 16.000 px), passeggiata, collezione, inclinazione, opera del giorno, aree sicure.
 
 ## Decisioni
 
@@ -32,6 +37,9 @@ Lavoro sull'estetica di `index.html`. Lo stile esistente si mantiene (palette, B
 - **Una coda a parte (`sym`) con al massimo due richieste insieme e 9 s di tempo massimo**: non rallenta la coda `wd` degli artisti e resta sotto il limite di Wikidata.
 - **`SYM_SKIP`**: «L'origine du monde» è la più nota del Realismo ma non è adatta a fare da insegna nella pianta; al suo posto la seconda, «Funerale a Ornans».
 - **Miniatura quadrata con ritaglio** (`object-fit: cover`, centro un po' in alto): righe tutte uguali e linea del tempo allineata; il quadro intero si vede entrando.
+- **Il nome  va al pulsante del quadro (), non all'immagine**: così il quadro vola insieme alla sua ombra; con la sola immagine restava per un attimo il riquadro dell'ombra vuoto.
+- **La barra in alto ha un nome suo () solo durante il passaggio**: resta ferma mentre la pagina sotto si muove. Per quei 340 ms i suoi pulsanti perdono la sfocatura dello sfondo (dietro c'è la parete scura: non si nota).
+- **Se i dati dell'opera non sono ancora sul dispositivo** (es. «Riprendi da» a cache vuota) il passaggio non tiene fermo lo schermo: dopo 280 ms prosegue e la vista cambia quando arrivano i dati, senza animazione.
 - **Telefono: tolto «N artisti» dalla riga** per stare nei 72 px; al suo posto gli anni.
 
 ## Problemi aperti
