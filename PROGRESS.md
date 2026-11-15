@@ -8,7 +8,9 @@ Lavoro sull'estetica di `index.html`. Lo stile esistente si mantiene (palette, B
 - [x] **1. La home mostra i quadri** — un'opera simbolo per ogni sala in `#moveList`
 - [x] **2. Transizioni tra le viste** — View Transitions API, miniatura ↔ quadro
 - [ ] **3. (non indicato)** — la richiesta parla di «tre punti» ma ne elenca due: il terzo resta da chiedere al proprietario
-- [ ] **Chiusura** — verifica con Playwright (1440×900 e 390×844), console senza errori, `app-version` incrementata
+- [x] **Chiusura** — verifica con Playwright (1440×900 e 390×844), `app-version` da 17 a 18
+
+Il branch **non è unito a `main`**: la versione pubblicata su GitHub Pages non cambia finché non lo decide il proprietario.
 
 ## Stato
 
@@ -24,12 +26,19 @@ Lavoro sull'estetica di `index.html`. Lo stile esistente si mantiene (palette, B
 - Opera del giorno: su schermi larghi il posto di quadro e cartellino è riservato (`--today-h`), così quando l'immagine arriva la pagina sotto non si sposta (prima: salto misurato 0,067; ora 0).
 
 ### 2. Transizioni tra le viste (fatto)
--  avvia  a ogni cambio di vista (pianta ↔ sala ↔ artista ↔ opera, collezione). Da un'opera all'altra resta la dissolvenza di .
-- Elemento condiviso : il nome è assegnato da codice solo ai due elementi coinvolti e tolto a fine passaggio (prima era fisso su ). Andata: miniatura toccata → quadro. Ritorno: quadro → la sua miniatura nella parete (o nell'opera del giorno, tornando alla pianta).
-- Direzione: entrando più a fondo la vista nuova sale dal basso (), tornando scende dall'alto (); tra viste dello stesso livello solo dissolvenza.
-- Durate: 300 ms (vista che esce), 360 ms (vista che entra), 340 ms (barra in alto), 420 ms (quadro). Curva  ovunque.
-- : nessun passaggio avviato (provato: 0 chiamate). Senza l'API: cambio vista normale, nessun errore (provato togliendo ).
-- Prove automatiche (Playwright, Chromium, 1440×900 e 390×844): 9 passaggi per formato con elemento condiviso presente dove previsto, nomi tutti tolti alla fine; 23 controlli su hash, tasti R C M P I Z L F, frecce, Esc, zoom (anche OpenSeadragon sulla Notte stellata, 16.000 px), passeggiata, collezione, inclinazione, opera del giorno, aree sicure.
+- `onHash` avvia `document.startViewTransition` a ogni cambio di vista (pianta ↔ sala ↔ artista ↔ opera, collezione). Da un'opera all'altra resta la dissolvenza di `paintWork`.
+- Elemento condiviso `hero`: il nome è assegnato da codice solo ai due elementi coinvolti e tolto a fine passaggio (prima era fisso su `#paint`). Andata: miniatura toccata → quadro. Ritorno: quadro → la sua miniatura nella parete (o nell'opera del giorno, tornando alla pianta).
+- Direzione: entrando più a fondo la vista nuova sale dal basso (`data-vt="fwd"`), tornando scende dall'alto (`back`); tra viste dello stesso livello solo dissolvenza.
+- Durate: 300 ms (vista che esce), 360 ms (vista che entra), 340 ms (barra in alto), 420 ms (quadro). Curva `--ease` ovunque.
+- `prefers-reduced-motion`: nessun passaggio avviato (provato: 0 chiamate). Senza l'API: cambio vista normale, nessun errore (provato togliendo `startViewTransition`).
+
+### Chiusura (fatto)
+- Prove automatiche con Playwright e Chromium, rete attiva, a 1440×900 e 390×844:
+  - 9 passaggi tra viste per formato: elemento condiviso presente dove previsto, durate e curva giuste, nomi tutti tolti alla fine;
+  - 23 controlli di non-regressione, tutti superati: hash `#m/`, `#a/`, `#w/`, `#c/`; tasti R, C, M, P, I, Z, L, F, frecce, Esc, Invio nella ricerca; indietro del browser; zoom (anche OpenSeadragon sulla Notte stellata, 16.000 px); passeggiata; collezione in `localStorage`; inclinazione del quadro; opera del giorno; «Riprendi da»; aree sicure (`env(safe-area-inset-*)`, `viewport-fit=cover`);
+  - salti di layout nella home: 0 su desktop (prima 0,067), 0,006 su telefono;
+  - nessuno scorrimento orizzontale, nessun errore JavaScript.
+- `app-version`: 17 → 18.
 
 ## Decisioni
 
@@ -37,13 +46,16 @@ Lavoro sull'estetica di `index.html`. Lo stile esistente si mantiene (palette, B
 - **Una coda a parte (`sym`) con al massimo due richieste insieme e 9 s di tempo massimo**: non rallenta la coda `wd` degli artisti e resta sotto il limite di Wikidata.
 - **`SYM_SKIP`**: «L'origine du monde» è la più nota del Realismo ma non è adatta a fare da insegna nella pianta; al suo posto la seconda, «Funerale a Ornans».
 - **Miniatura quadrata con ritaglio** (`object-fit: cover`, centro un po' in alto): righe tutte uguali e linea del tempo allineata; il quadro intero si vede entrando.
-- **Il nome  va al pulsante del quadro (), non all'immagine**: così il quadro vola insieme alla sua ombra; con la sola immagine restava per un attimo il riquadro dell'ombra vuoto.
-- **La barra in alto ha un nome suo () solo durante il passaggio**: resta ferma mentre la pagina sotto si muove. Per quei 340 ms i suoi pulsanti perdono la sfocatura dello sfondo (dietro c'è la parete scura: non si nota).
-- **Se i dati dell'opera non sono ancora sul dispositivo** (es. «Riprendi da» a cache vuota) il passaggio non tiene fermo lo schermo: dopo 280 ms prosegue e la vista cambia quando arrivano i dati, senza animazione.
 - **Telefono: tolto «N artisti» dalla riga** per stare nei 72 px; al suo posto gli anni.
+- **Opera del giorno un po' più bassa su desktop** (al massimo 380 px invece di 430) per riservarle il posto senza allungare la home.
+- **Il nome `hero` va al pulsante del quadro (`#paintBtn`), non all'immagine**: così il quadro vola insieme alla sua ombra; con la sola immagine restava per un attimo il riquadro dell'ombra vuoto.
+- **La barra in alto ha un nome suo (`topbar`) solo durante il passaggio**: resta ferma mentre la pagina sotto si muove. Per quei 340 ms i suoi pulsanti perdono la sfocatura dello sfondo (dietro c'è la parete scura: non si nota).
+- **Se i dati dell'opera non sono ancora sul dispositivo** (es. «Riprendi da» a cache vuota) il passaggio non tiene fermo lo schermo: dopo 280 ms prosegue e la vista cambia quando arrivano i dati, senza animazione.
+- **Sala → artista senza elemento condiviso**: solo il movimento della pagina. La copertina dell'artista potrebbe diventare la prima opera della parete, ma non era richiesto.
 
 ## Problemi aperti
 
 - Terzo punto della richiesta non specificato.
-- Errori in console che c'erano già e non dipendono da queste modifiche: immagini dell'Art Institute of Chicago bloccate (`ERR_BLOCKED_BY_RESPONSE.NotSameOrigin`) e, ogni tanto, 429/502 di Wikidata sotto carico.
-- Sulla porta 8765 del PC c'è un altro server locale (non di questo lavoro) che serve la versione vecchia: le prove si fanno sulla 8791.
+- Errori di rete in console che c'erano già e non dipendono da queste modifiche: immagini dell'Art Institute of Chicago bloccate (`ERR_BLOCKED_BY_RESPONSE.NotSameOrigin`), ogni tanto 429/502 di Wikidata sotto carico (durante le prove hanno lasciato alcune copertine su «Carico…» finché non si è sbloccata) e un errore CORS dell'API di Cleveland.
+- Il passaggio miniatura → quadro è stato provato solo in Chromium. Safari e Firefox recenti hanno la stessa API ma non sono stati provati qui.
+- Sulla porta 8765 del PC c'è un altro server locale (non di questo lavoro) che serve la versione vecchia: le prove si sono fatte sulla 8791.
