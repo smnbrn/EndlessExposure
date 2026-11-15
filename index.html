@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Endless Exposure">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#18211f">
-<meta name="app-version" content="18">
+<meta name="app-version" content="19">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Instrument+Sans:wght@400;500;600&display=swap">
@@ -700,10 +700,16 @@
     </div>
     <input id="find" class="find" type="search" placeholder="Cerca un movimento o un artista…" aria-label="Cerca un movimento o un artista" autocomplete="off" enterkeyhint="search">
     <div id="artistHits" hidden><p class="sec-k">Artisti</p><ul class="rows" id="artistHitList"></ul></div>
-    <p class="sec-k" id="moveK">Le sale, dal 1260 al 1930</p>
+    <p class="sec-k" id="moveK">Le sale</p>
     <div class="axis" id="axis" aria-hidden="true"><span></span><span></span><span class="track"></span><span></span><span></span></div>
     <ul class="rows" id="moveList"></ul>
-    <p class="credits">Opere da <a href="https://www.wikidata.org" target="_blank" rel="noopener">Wikidata</a> e <a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>, più le collezioni aperte del <a href="https://www.clevelandart.org/open-access" target="_blank" rel="noopener">Cleveland Museum of Art</a>, del <a href="https://www.metmuseum.org/hubs/open-access" target="_blank" rel="noopener">Metropolitan Museum of Art</a> e dell'<a href="https://www.artic.edu/open-access" target="_blank" rel="noopener">Art Institute of Chicago</a>: solo opere di pubblico dominio. I testi su artisti e opere vengono da <a href="https://it.wikipedia.org" target="_blank" rel="noopener">Wikipedia</a> (CC BY-SA). Lo zoom usa i server IIIF dei musei quando offrono più dettaglio. <span id="ver"></span></p>
+    <div id="newYear" hidden aria-label="Entrati nel museo quest'anno">
+      <p class="sec-k">Entrati nel museo quest’anno</p>
+      <p class="lives-note" id="newYearNote"></p>
+      <ul class="rows" id="newYearArtists"></ul>
+      <div class="works" id="newYearWorks"></div>
+    </div>
+    <p class="credits">Opere da <a href="https://www.wikidata.org" target="_blank" rel="noopener">Wikidata</a> e <a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>, più le collezioni aperte del <a href="https://www.clevelandart.org/open-access" target="_blank" rel="noopener">Cleveland Museum of Art</a>, del <a href="https://www.metmuseum.org/hubs/open-access" target="_blank" rel="noopener">Metropolitan Museum of Art</a>, dell'<a href="https://www.artic.edu/open-access" target="_blank" rel="noopener">Art Institute of Chicago</a>, del <a href="https://data.rijksmuseum.nl" target="_blank" rel="noopener">Rijksmuseum</a> e dello <a href="https://open.smk.dk" target="_blank" rel="noopener">SMK di Copenaghen</a>: solo opere di pubblico dominio. I testi su artisti e opere vengono da <a href="https://it.wikipedia.org" target="_blank" rel="noopener">Wikipedia</a> (CC BY-SA). Lo zoom usa i server IIIF dei musei quando offrono più dettaglio. <span id="ver"></span></p>
   </div>
 </section>
 
@@ -781,13 +787,21 @@
   const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  /* ---------- Pubblico dominio ----------
+     Entra un artista morto da più di 70 anni e solo le sue opere di almeno 96 anni fa (in Europa le opere tornano libere
+     70 anni dopo la morte dell'autore; negli Stati Uniti, dove stanno i server di Commons, quelle pubblicate più di 95 anni fa).
+     Le soglie si spostano da sole a ogni capodanno: nel 2026 artisti morti entro il 1955 e opere fino al 1930. */
+  const YEAR = new Date().getFullYear();
+  const PD_DEATH = YEAR - 71, PD_WORK = YEAR - 96;
+
   /* ---------- Movimenti e artisti ----------
      n = nome mostrato e usato per la ricerca al Met
      k = chiave per riconoscere l'artista nei dati dei musei (minuscolo, senza accenti)
      p = frase cercata nel campo artista dell'Art Institute (se diversa da k)
-     w = identificativo Wikidata (verificato)
-     b, d = nascita e morte (c = circa) */
-  const MOVEMENTS = [
+     w = identificativo Wikidata (verificato: essere umano, pittore, date di nascita e morte)
+     b, d = nascita e morte (c = circa)
+     parent = sala più grande a cui la sala appartiene (compare dentro di lei, con le porte per entrare) */
+  const ROOMS = [
     { id: 'protorinascimento', name: 'Gotico e Protorinascimento', from: 1260, to: 1400,
       desc: 'Dal fondo oro bizantino allo spazio vero: con Giotto le figure prendono peso, volume ed emozione.',
       artists: [
@@ -796,6 +810,12 @@
         { n: 'Giotto', w: 'Q7814', k: 'giotto', b: '1267c', d: 1337 },
         { n: 'Simone Martini', w: 'Q221043', k: 'simone martini', b: '1284c', d: 1344 },
         { n: 'Ambrogio Lorenzetti', w: 'Q211562', k: 'ambrogio lorenzetti', b: '1290c', d: 1348 },
+      ] },
+    { id: 'gotico-internazionale', parent: 'protorinascimento', name: 'Gotico internazionale', from: 1375, to: 1450,
+      desc: 'Nelle corti d’Europa la pittura si fa preziosa: oro, broccati, cavalieri e animali dipinti uno per uno.',
+      artists: [
+        { n: 'Gentile da Fabriano', w: 'Q312393', k: 'gentile da fabriano', b: '1370c', d: 1427 },
+        { n: 'Pisanello', w: 'Q311082', k: 'pisanello', b: '1395c', d: 1455 },
       ] },
     { id: 'rinascimento-italiano', name: 'Rinascimento italiano', from: 1400, to: 1520,
       desc: "Prospettiva, proporzione e studio dell'antico: tra Firenze, Venezia e Roma la pittura rimette l'uomo al centro.",
@@ -841,16 +861,47 @@
         { n: 'Hans Holbein il Giovane', w: 'Q48319', q: 'Hans Holbein the Younger', k: 'holbein', b: 1497, d: 1543 },
         { n: 'Pieter Bruegel il Vecchio', w: 'Q43270', q: 'Pieter Bruegel the Elder', k: 'pieter bruegel', b: '1525c', d: 1569 },
       ] },
-    { id: 'barocco', name: 'Barocco', from: 1600, to: 1720,
-      desc: 'Luce teatrale, contrasti netti e movimento, da Roma ad Amsterdam.',
+    { id: 'barocco-italiano', name: 'Barocco italiano', from: 1595, to: 1700,
+      desc: 'Luce teatrale e contrasti netti: da Caravaggio in poi la pittura italiana vuole colpire chi guarda.',
       artists: [
+        { n: 'Annibale Carracci', w: 'Q7824', k: 'annibale carracci', b: 1560, d: 1609 },
         { n: 'Caravaggio', w: 'Q42207', k: 'caravaggio', b: 1571, d: 1610 },
+        { n: 'Guido Reni', w: 'Q109061', k: 'guido reni', b: 1575, d: 1642 },
+        { n: 'Guercino', w: 'Q334262', k: 'guercino', b: 1591, d: 1666 },
         { n: 'Artemisia Gentileschi', w: 'Q212657', k: 'artemisia', b: 1593, d: '1656c' },
+        { n: 'Mattia Preti', w: 'Q468632', k: 'mattia preti', b: 1613, d: 1699 },
+        { n: 'Luca Giordano', w: 'Q332494', k: 'luca giordano', b: 1634, d: 1705 },
+      ] },
+    { id: 'barocco-fiammingo', name: 'Barocco fiammingo', from: 1600, to: 1680,
+      desc: 'Ad Anversa, attorno alla bottega di Rubens: corpi in movimento, colori caldi, cacce e nature morte generose.',
+      artists: [
         { n: 'Pieter Paul Rubens', w: 'Q5599', q: 'Peter Paul Rubens', k: 'rubens', b: 1577, d: 1640 },
+        { n: 'Frans Snyders', w: 'Q29231', k: 'snyders', b: 1579, d: 1657 },
+        { n: 'Jacob Jordaens', w: 'Q270658', k: 'jordaens', b: 1593, d: 1678 },
+        { n: 'Antoon van Dyck', w: 'Q150679', q: 'Anthony van Dyck', k: 'van dyck', b: 1599, d: 1641 },
+      ] },
+    { id: 'secolo-oro-olandese', name: 'Secolo d’oro olandese', from: 1615, to: 1680,
+      desc: 'Nella repubblica dei mercanti si dipingono interni, paesaggi e gente comune, con una luce che nessuno aveva visto prima.',
+      artists: [
         { n: 'Frans Hals', w: 'Q167654', k: 'frans hals', b: '1582c', d: 1666 },
-        { n: 'Diego Velázquez', w: 'Q297', q: 'Diego Velazquez', k: 'velazquez', p: 'Velázquez', b: 1599, d: 1660 },
         { n: 'Rembrandt', w: 'Q5598', q: 'Rembrandt van Rijn', k: 'rembrandt', b: 1606, d: 1669 },
+        { n: 'Jan Steen', w: 'Q205863', k: 'steen', p: 'Jan Steen', b: '1626c', d: 1679 },
+        { n: 'Jacob van Ruisdael', w: 'Q213612', k: 'ruisdael', p: 'Jacob van Ruisdael', b: '1628c', d: 1682 },
         { n: 'Johannes Vermeer', w: 'Q41264', k: 'vermeer', b: 1632, d: 1675 },
+      ] },
+    { id: 'siglo-de-oro', name: 'Siglo de Oro spagnolo', from: 1610, to: 1690,
+      desc: 'Tra la corte di Madrid e i conventi di Siviglia: realismo severo, ombre profonde, santi in carne e ossa.',
+      artists: [
+        { n: 'Jusepe de Ribera', w: 'Q297838', k: 'ribera', b: 1591, d: 1652 },
+        { n: 'Francisco de Zurbarán', w: 'Q209615', q: 'Francisco de Zurbaran', k: 'zurbaran', p: 'Zurbarán', b: 1598, d: 1664 },
+        { n: 'Diego Velázquez', w: 'Q297', q: 'Diego Velazquez', k: 'velazquez', p: 'Velázquez', b: 1599, d: 1660 },
+        { n: 'Bartolomé Esteban Murillo', w: 'Q192062', q: 'Bartolome Esteban Murillo', k: 'murillo', b: 1617, d: 1682 },
+      ] },
+    { id: 'classicismo-francese', name: 'Classicismo francese del Seicento', from: 1625, to: 1690,
+      desc: 'Due francesi a Roma: storie antiche costruite con ordine e misura, paesaggi ideali nella luce dorata della sera.',
+      artists: [
+        { n: 'Nicolas Poussin', w: 'Q41554', k: 'nicolas poussin', p: 'Poussin', b: 1594, d: 1665 },
+        { n: 'Claude Lorrain', w: 'Q214074', k: 'claude lorrain', p: 'Claude Lorrain', b: '1600c', d: 1682 },
       ] },
     { id: 'rococo', name: 'Rococò', from: 1720, to: 1780,
       desc: 'Leggerezza, colori chiari e feste galanti in Francia; a Venezia, cieli aperti e vedute di città.',
@@ -862,6 +913,15 @@
         { n: 'François Boucher', w: 'Q180932', q: 'Francois Boucher', k: 'francois boucher', p: 'Boucher', b: 1703, d: 1770 },
         { n: 'Francesco Guardi', w: 'Q318769', k: 'francesco guardi', b: 1712, d: 1793 },
         { n: 'Jean-Honoré Fragonard', w: 'Q127171', q: 'Jean Honore Fragonard', k: 'fragonard', b: 1732, d: 1806 },
+      ] },
+    { id: 'settecento-inglese', name: 'Settecento inglese', from: 1730, to: 1800,
+      desc: 'Satire di costume, ritratti dell’aristocrazia, cavalli di razza e fucine illuminate di notte: la pittura inglese trova la sua voce.',
+      artists: [
+        { n: 'William Hogarth', w: 'Q171344', k: 'hogarth', b: 1697, d: 1764 },
+        { n: 'Joshua Reynolds', w: 'Q194402', k: 'joshua reynolds', b: 1723, d: 1792 },
+        { n: 'George Stubbs', w: 'Q381728', k: 'george stubbs', b: 1724, d: 1806 },
+        { n: 'Thomas Gainsborough', w: 'Q192720', k: 'gainsborough', b: 1727, d: 1788 },
+        { n: 'Joseph Wright of Derby', w: 'Q214062', k: 'wright of derby', b: 1734, d: 1797 },
       ] },
     { id: 'neoclassicismo', name: 'Neoclassicismo', from: 1760, to: 1830,
       desc: "Ritorno all'ordine dell'antichità greca e romana: disegno nitido, soggetti eroici e morali.",
@@ -883,6 +943,13 @@
         { n: 'Eugène Delacroix', w: 'Q33477', q: 'Eugene Delacroix', k: 'delacroix', b: 1798, d: 1863 },
         { n: 'François-Auguste Biard', w: 'Q1383101', q: 'Francois Auguste Biard', k: 'auguste biard', p: 'Biard', b: 1799, d: 1882 },
       ] },
+    { id: 'hudson-river', parent: 'romanticismo', name: 'Paesaggio sublime americano', from: 1825, to: 1880,
+      desc: 'La Hudson River School: montagne, cascate e cieli immensi, l’America selvaggia dipinta come una promessa.',
+      artists: [
+        { n: 'Thomas Cole', w: 'Q334001', k: 'thomas cole', b: 1801, d: 1848 },
+        { n: 'Frederic Edwin Church', w: 'Q366212', k: 'frederic edwin church', p: 'Frederic Edwin Church', b: 1826, d: 1900 },
+        { n: 'Albert Bierstadt', w: 'Q77132', k: 'bierstadt', b: 1830, d: 1902 },
+      ] },
     { id: 'realismo', name: 'Realismo', from: 1840, to: 1880,
       desc: 'Il lavoro, la campagna e la città dipinti come sono, senza idealizzarli.',
       artists: [
@@ -898,6 +965,37 @@
         { n: 'Théodore Rousseau', w: 'Q310025', q: 'Theodore Rousseau', k: 'theodore rousseau', p: 'Rousseau', b: 1812, d: 1867 },
         { n: 'Charles-François Daubigny', w: 'Q252357', q: 'Daubigny', k: 'daubigny', b: 1817, d: 1878 },
       ] },
+    { id: 'macchiaioli', parent: 'realismo', name: 'Macchiaioli', from: 1855, to: 1880,
+      desc: 'A Firenze, contro l’accademia: macchie di colore e luce forte per dipingere soldati, campagne e pomeriggi qualunque.',
+      artists: [
+        { n: 'Giovanni Fattori', w: 'Q710089', k: 'fattori', b: 1825, d: 1908 },
+        { n: 'Silvestro Lega', w: 'Q369633', k: 'silvestro lega', b: 1826, d: 1895 },
+        { n: 'Telemaco Signorini', w: 'Q2326080', k: 'signorini', b: 1835, d: 1901 },
+      ] },
+    { id: 'preraffaelliti', name: 'Preraffaelliti', from: 1848, to: 1900,
+      desc: 'Giovani inglesi contro l’accademia: colori brillanti, dettagli minuziosi, storie di poesia e di leggenda.',
+      artists: [
+        { n: 'Dante Gabriel Rossetti', w: 'Q186748', k: 'dante gabriel rossetti', b: 1828, d: 1882 },
+        { n: 'John Everett Millais', w: 'Q159606', k: 'millais', b: 1829, d: 1896 },
+        { n: 'Edward Burne-Jones', w: 'Q216406', k: 'burne jones', p: 'Burne-Jones', b: 1833, d: 1898 },
+        { n: 'John William Waterhouse', w: 'Q212754', k: 'waterhouse', b: 1849, d: 1917 },
+      ] },
+    { id: 'accademica', name: 'Pittura accademica', from: 1850, to: 1900,
+      desc: 'La pittura dei Salon: disegno impeccabile, superfici levigate come porcellana, miti e storia antica.',
+      artists: [
+        { n: 'Alexandre Cabanel', w: 'Q310437', k: 'cabanel', b: 1823, d: 1889 },
+        { n: 'Jean-Léon Gérôme', w: 'Q212499', q: 'Jean-Leon Gerome', k: 'gerome', p: 'Gérôme', b: 1824, d: 1904 },
+        { n: 'William-Adolphe Bouguereau', w: 'Q483992', k: 'bouguereau', b: 1825, d: 1905 },
+        { n: 'Lawrence Alma-Tadema', w: 'Q240526', k: 'alma tadema', p: 'Alma-Tadema', b: 1836, d: 1912 },
+      ] },
+    { id: 'pittura-russa', name: 'Pittura russa', from: 1850, to: 1910,
+      desc: 'Mari in tempesta, foreste di pini, fiabe e storia: l’Ottocento russo racconta un paese immenso.',
+      artists: [
+        { n: 'Ivan Ajvazovskij', w: 'Q181568', q: 'Ivan Aivazovsky', k: 'aivazovsk', p: 'Aivazovsky', b: 1817, d: 1900 },
+        { n: 'Ivan Šiškin', w: 'Q193064', q: 'Ivan Shishkin', k: 'shishkin', b: 1831, d: 1898 },
+        { n: 'Il’ja Repin', w: 'Q172911', q: 'Ilya Repin', k: 'repin', p: 'Ilya Repin', b: 1844, d: 1930 },
+        { n: 'Viktor Vasnecov', w: 'Q204138', q: 'Viktor Vasnetsov', k: 'vasnetsov', b: 1848, d: 1926 },
+      ] },
     { id: 'impressionismo', name: 'Impressionismo', from: 1860, to: 1890,
       desc: 'Pittura all’aria aperta, luce che cambia, pennellate rapide. La prima mostra del gruppo apre a Parigi nel 1874.',
       artists: [
@@ -910,6 +1008,13 @@
         { n: 'Mary Cassatt', w: 'Q173223', k: 'cassatt', b: 1844, d: 1926 },
         { n: 'Gustave Caillebotte', w: 'Q295144', k: 'caillebotte', b: 1848, d: 1894 },
         { n: 'Édouard Manet', w: 'Q40599', q: 'Edouard Manet', k: 'manet', p: 'Manet', b: 1832, d: 1883 },
+      ] },
+    { id: 'realismo-americano', name: 'Realismo americano', from: 1870, to: 1915,
+      desc: 'Tra Londra, Parigi e il New England: ritratti brillanti, notturni sul fiume, mare e vita all’aperto.',
+      artists: [
+        { n: 'James McNeill Whistler', w: 'Q203643', q: 'James McNeill Whistler', k: 'whistler', b: 1834, d: 1903 },
+        { n: 'Winslow Homer', w: 'Q344838', k: 'winslow homer', b: 1836, d: 1910 },
+        { n: 'John Singer Sargent', w: 'Q155626', k: 'singer sargent', b: 1856, d: 1925 },
       ] },
     { id: 'postimpressionismo', name: 'Postimpressionismo', from: 1885, to: 1910,
       desc: 'Dopo l’Impressionismo: struttura, colore espressivo, simboli personali.',
@@ -926,6 +1031,19 @@
         { n: 'Paul Signac', w: 'Q151573', k: 'signac', b: 1863, d: 1935 },
         { n: 'Henri-Edmond Cross', w: 'Q555224', q: 'Henri Edmond Cross', k: 'edmond cross', p: 'Cross', b: 1856, d: 1910 },
       ] },
+    { id: 'nabis', parent: 'postimpressionismo', name: 'Nabis', from: 1888, to: 1900,
+      desc: 'I «profeti» nati dalla lezione di Gauguin: colori piatti, interni raccolti, pittura come decorazione.',
+      artists: [
+        { n: 'Pierre Bonnard', w: 'Q26408', k: 'bonnard', b: 1867, d: 1947 },
+        { n: 'Édouard Vuillard', w: 'Q239394', q: 'Edouard Vuillard', k: 'vuillard', b: 1868, d: 1940 },
+      ] },
+    { id: 'divisionismo', parent: 'postimpressionismo', name: 'Divisionismo italiano', from: 1890, to: 1910,
+      desc: 'Il colore diviso in filamenti puri: luce d’alta montagna, visioni e il primo grande quadro sul lavoro.',
+      artists: [
+        { n: 'Gaetano Previati', w: 'Q913979', k: 'previati', b: 1852, d: 1920 },
+        { n: 'Giovanni Segantini', w: 'Q379300', k: 'segantini', b: 1858, d: 1899 },
+        { n: 'Giuseppe Pellizza da Volpedo', w: 'Q1528580', k: 'pellizza', b: 1868, d: 1907 },
+      ] },
     { id: 'simbolismo', name: 'Simbolismo', from: 1880, to: 1910,
       desc: 'Sogno, mito e mondo interiore al posto della realtà visibile.',
       artists: [
@@ -936,22 +1054,95 @@
         { n: 'Gustav Klimt', w: 'Q34661', k: 'klimt', b: 1862, d: 1918 },
         { n: 'Edvard Munch', w: 'Q41406', k: 'munch', b: 1863, d: 1944 },
       ] },
-    { id: 'avanguardie', name: 'Avanguardie storiche', from: 1905, to: 1930,
-      desc: 'Astrazione, Futurismo, Espressionismo. Qui le collezioni aperte sono scarse: molte opere del Novecento sono ancora protette dal diritto d’autore.',
+    { id: 'pittura-scandinava', name: 'Pittura scandinava', from: 1880, to: 1915,
+      desc: 'La luce del Nord: stanze silenziose a Copenaghen, sere d’estate che non diventano mai notte sulla spiaggia di Skagen.',
       artists: [
+        { n: 'Peder Severin Krøyer', w: 'Q365068', k: 'kroyer', p: 'Krøyer', b: 1851, d: 1909 },
+        { n: 'Anders Zorn', w: 'Q206820', k: 'anders zorn', b: 1860, d: 1920 },
+        { n: 'Vilhelm Hammershøi', w: 'Q380706', k: 'vilhelm hammershoi', p: 'Hammershøi', b: 1864, d: 1916 },
+      ] },
+    { id: 'fauvismo', name: 'Fauvismo', from: 1904, to: 1910,
+      desc: 'Le «belve» del Salon del 1905: colori puri e violenti, liberi dal compito di copiare la realtà.',
+      artists: [
+        { n: 'Henri Matisse', w: 'Q5589', k: 'matisse', b: 1869, d: 1954 },
+        { n: 'Albert Marquet', w: 'Q267858', k: 'marquet', b: 1875, d: 1947 },
+        { n: 'Raoul Dufy', w: 'Q45205', k: 'raoul dufy', b: 1877, d: 1953 },
+        { n: 'André Derain', w: 'Q156272', q: 'Andre Derain', k: 'derain', b: 1880, d: 1954 },
+      ] },
+    { id: 'espressionismo', name: 'Espressionismo', from: 1905, to: 1930,
+      desc: 'Forme e colori deformati per dire ciò che si prova: dalla Brücke di Dresda al Cavaliere azzurro di Monaco, fino a Vienna.',
+      artists: [
+        { n: 'Lovis Corinth', w: 'Q157610', k: 'corinth', b: 1858, d: 1925 },
+        { n: 'Alexej von Jawlensky', w: 'Q156426', k: 'jawlensky', b: 1864, d: 1941 },
         { n: 'Vasilij Kandinskij', w: 'Q61064', q: 'Wassily Kandinsky', k: 'kandinsky', p: 'Kandinsky', b: 1866, d: 1944 },
-        { n: 'Piet Mondrian', w: 'Q151803', k: 'mondrian', b: 1872, d: 1944 },
+        { n: 'Otto Mueller', w: 'Q317041', k: 'otto mueller', b: 1874, d: 1930 },
+        { n: 'Paula Modersohn-Becker', w: 'Q234370', k: 'modersohn', p: 'Modersohn-Becker', b: 1876, d: 1907 },
         { n: 'Paul Klee', w: 'Q44007', k: 'paul klee', b: 1879, d: 1940 },
+        { n: 'Ernst Ludwig Kirchner', w: 'Q229272', k: 'kirchner', b: 1880, d: 1938 },
         { n: 'Franz Marc', w: 'Q44054', k: 'franz marc', b: 1880, d: 1916 },
+        { n: 'Max Pechstein', w: 'Q162105', k: 'pechstein', b: 1881, d: 1955 },
+        { n: 'Max Beckmann', w: 'Q164683', k: 'beckmann', b: 1884, d: 1950 },
+        { n: 'August Macke', w: 'Q33981', k: 'august macke', b: 1887, d: 1914 },
+        { n: 'Egon Schiele', w: 'Q44032', k: 'schiele', b: 1890, d: 1918 },
+      ] },
+    { id: 'cubismo-orfismo', name: 'Cubismo e Orfismo', from: 1907, to: 1925,
+      desc: 'Le cose viste da più punti insieme e scomposte in piani; con l’Orfismo il colore si mette a girare.',
+      artists: [
+        { n: 'Louis Marcoussis', w: 'Q1346343', k: 'marcoussis', b: 1878, d: 1941 },
+        { n: 'Albert Gleizes', w: 'Q711903', k: 'gleizes', b: 1881, d: 1953 },
+        { n: 'Fernand Léger', w: 'Q157183', q: 'Fernand Leger', k: 'fernand leger', p: 'Léger', b: 1881, d: 1955 },
+        { n: 'Robert Delaunay', w: 'Q33978', k: 'robert delaunay', b: 1885, d: 1941 },
+        { n: 'Roger de La Fresnaye', w: 'Q718882', k: 'fresnaye', p: 'La Fresnaye', b: 1885, d: 1925 },
+        { n: 'Juan Gris', w: 'Q151152', k: 'juan gris', b: 1887, d: 1927 },
+      ] },
+    { id: 'futurismo', name: 'Futurismo', from: 1909, to: 1930,
+      desc: 'Velocità, macchine, rumore e città moderna: il movimento italiano che voleva bruciare i musei.',
+      artists: [
         { n: 'Umberto Boccioni', w: 'Q152797', k: 'boccioni', b: 1882, d: 1916 },
+        { n: 'Luigi Russolo', w: 'Q434916', k: 'russolo', b: 1885, d: 1947 },
+      ] },
+    { id: 'scuola-di-parigi', name: 'Scuola di Parigi', from: 1905, to: 1930,
+      desc: 'Artisti arrivati da tutta Europa a Montmartre e Montparnasse: volti allungati, nudi, colore denso e inquieto.',
+      artists: [
         { n: 'Amedeo Modigliani', w: 'Q120993', k: 'modigliani', b: 1884, d: 1920 },
+        { n: 'Jules Pascin', w: 'Q469063', k: 'pascin', b: 1885, d: 1930 },
+        { n: 'Moïse Kisling', w: 'Q281812', q: 'Moise Kisling', k: 'kisling', b: 1891, d: 1953 },
+        { n: 'Chaïm Soutine', w: 'Q160141', q: 'Chaim Soutine', k: 'soutine', b: 1893, d: 1943 },
+      ] },
+    { id: 'astrattismo-russo', name: 'Astrattismo russo', from: 1913, to: 1930,
+      desc: 'Un quadrato nero su fondo bianco e poi linee, piani, costruzioni: a Mosca la pittura smette di rappresentare.',
+      artists: [
+        { n: 'Kazimir Malevič', w: 'Q130777', q: 'Kazimir Malevich', k: 'malevich', b: 1879, d: 1935 },
+        { n: 'Vladimir Tatlin', w: 'Q310320', k: 'tatlin', b: 1885, d: 1953 },
+        { n: 'Ljubov’ Popova', w: 'Q259594', q: 'Lyubov Popova', k: 'popova', b: 1889, d: 1924 },
+        { n: 'El Lissitzky', w: 'Q152233', k: 'lissitzky', b: 1890, d: 1941 },
+      ] },
+    { id: 'dada', name: 'Dada', from: 1916, to: 1924,
+      desc: 'Contro la guerra e contro l’arte stessa: collage di scarti, macchine assurde e molta ironia.',
+      artists: [
+        { n: 'Francis Picabia', w: 'Q157321', k: 'picabia', b: 1879, d: 1953 },
+        { n: 'Kurt Schwitters', w: 'Q155158', k: 'schwitters', b: 1887, d: 1948 },
+        { n: 'Sophie Taeuber-Arp', w: 'Q254395', k: 'taeuber', p: 'Taeuber-Arp', b: 1889, d: 1943 },
+      ] },
+    { id: 'de-stijl', name: 'De Stijl', from: 1917, to: 1931,
+      desc: 'Linee rette, angoli retti e colori primari: dall’Olanda, la pittura ridotta all’essenziale.',
+      artists: [
+        { n: 'Piet Mondrian', w: 'Q151803', k: 'mondrian', b: 1872, d: 1944 },
+        { n: 'Theo van Doesburg', w: 'Q160422', k: 'doesburg', p: 'van Doesburg', b: 1883, d: 1931 },
       ] },
   ];
+  /* Sale di versioni precedenti, divise o sciolte: i vecchi indirizzi (#m/barocco, #m/avanguardie) portano a quelle nuove. */
+  const MOVED = { barocco: 'barocco-italiano', avanguardie: 'espressionismo' };
 
-  const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  /* ø, æ, ß non si scompongono in lettera + accento: si traslitterano prima (Hammershøi → hammershoi). */
+  const norm = (s) => (s || '').toLowerCase().replace(/ø/g, 'o').replace(/æ/g, 'ae').replace(/œ/g, 'oe').replace(/ß/g, 'ss').replace(/ł/g, 'l')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
   const slug = (s) => norm(s).replace(/ /g, '-');
   const yr = (v) => (typeof v === 'string' && v.endsWith('c') ? 'c. ' + v.slice(0, -1) : String(v));
   const life = (a) => yr(a.b) + '–' + yr(a.d);
+  /* Solo artisti morti entro la soglia; una sala che resta senza artisti non si apre. */
+  const MOVEMENTS = ROOMS.map((m) => Object.assign(m, { artists: m.artists.filter((a) => (parseInt(a.d, 10) || Infinity) <= PD_DEATH) }))
+    .filter((m) => m.artists.length);
   const moveById = new Map(), artistBySlug = new Map(), ALL = [];
   MOVEMENTS.forEach((m) => {
     moveById.set(m.id, m);
@@ -961,10 +1152,12 @@
       artistBySlug.set(a.slug, a); ALL.push(a);
     });
   });
+  /* Una sala figlia di una sala che non c'è più diventa una sala a sé. */
+  MOVEMENTS.forEach((m) => { if (m.parent && !moveById.has(m.parent)) delete m.parent; });
   const yrsOf = (m) => m.from + '–' + m.to;
 
   /* ---------- Rete: una coda per museo, per rispettare i limiti (AIC: 60 richieste al minuto) ---------- */
-  const GAP = { aic: 1050, met: 250, cma: 120, wd: 300, wp: 150, sym: 150 }, nextAt = { aic: 0, met: 0, cma: 0, wd: 0, wp: 0, sym: 0 };
+  const GAP = { aic: 1050, met: 250, cma: 120, wd: 300, wp: 150, sym: 150, rijks: 80, smk: 200 }, nextAt = { aic: 0, met: 0, cma: 0, wd: 0, wp: 0, sym: 0, rijks: 0, smk: 0 };
   const memo = new Map();
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   async function getJSON(host, url) {
@@ -1200,6 +1393,103 @@
     return rows.filter((r) => r.images && r.images.web && r.images.web.url && norm((r.creators || []).map((c) => c.description).join(' ')).includes(a.k)).map(fromCma);
   }
 
+  /* ---------- Rijksmuseum (Linked Open Data, senza chiave) ----------
+     La ricerca dà solo gli indirizzi delle opere; ognuna si legge dal resolver nel profilo EDM (circa 20 KB, con titolo
+     inglese, data, materiali, misure e servizio IIIF). Al massimo 20 opere per artista, 4 alla volta.
+     L'artista si riconosce dal suo identificativo Wikidata, che il Rijksmuseum dà tra gli equivalenti dell'autore. */
+  const RIJKS_SEARCH = 'https://data.rijksmuseum.nl/search/collection';
+  const RIJKS_DATA = 'https://data.rijksmuseum.nl/';
+  /* I valori arrivano come testo, come { en, nl } o come elenco di { @language, @value }: si prende l'inglese. */
+  function lv(x, lang = 'en', depth = 0) {
+    if (x == null || depth > 4) return '';
+    if (typeof x === 'string' || typeof x === 'number') return String(x);
+    if (Array.isArray(x)) return lv(x.find((v) => v && v['@language'] === lang) || x[0], lang, depth + 1);
+    if ('@value' in x) return lv(x['@value'], lang, depth + 1);
+    return lv(x[lang] != null ? x[lang] : x.nl != null ? x.nl : Object.values(x)[0], lang, depth + 1);
+  }
+  const SKOS_LABEL = 'http://www.w3.org/2004/02/skos/core#prefLabel', SIOC_SVC = 'http://rdfs.org/sioc/services#has_service';
+  /* Materiali del museo (in inglese) nelle parole che mediumOf conosce. */
+  const MAT_IT = [[/oil/i, 'pittura a olio'], [/tempera/i, 'tempera'], [/watercolou?r/i, 'acquerello'], [/gouache/i, 'guazzo'], [/pastel/i, 'pastello'],
+    [/canvas/i, 'tela'], [/panel|wood|oak/i, 'tavola'], [/cardboard/i, 'cartone'], [/paper/i, 'carta'], [/copper/i, 'rame']];
+  const matsOf = (labels) => labels.flatMap((t) => MAT_IT.filter(([re]) => re.test(t)).map(([, it]) => it));
+  function fromRijks(d, a) {
+    const c = d.aggregatedCHO || {}, shown = d.isShownBy || {};
+    const svc = ((shown[SIOC_SVC] || {}).id || '').replace(/\/$/, '');
+    const num = c.id.split('/').pop();
+    const ext = lv(c.extent), hm = /height\s*([\d.]+)\s*cm/i.exec(ext), wm = /width\s*([\d.]+)\s*cm/i.exec(ext);
+    const mats = matsOf([].concat(c.medium || []).map((m) => lv(m[SKOS_LABEL])));
+    /* A volte il titolo è un elenco senza lingua: prima l'olandese, poi l'inglese. */
+    const plain = Array.isArray(c.title) && c.title.every((t) => typeof t === 'string');
+    const title = (plain ? c.title[c.title.length - 1] : lv(c.title)) || 'Senza titolo', nl = plain ? c.title[0] : lv(c.title, 'nl');
+    return {
+      id: 'rijks-' + num, src: 'rijks', museum: 'Rijksmuseum, Amsterdam',
+      title, nl: nl !== title ? nl : '', artist: a.n, bio: life(a),
+      date: lv(c.created), medium: mats.length ? mediumOf(mats) : '', dims: hm && wm ? hm[1] + ' × ' + wm[1] + ' cm' : '', credit: '',
+      painting: true, w: 0, h: 0, lqip: '', alt: title,
+      thumb: svc + '/full/843,/0/default.jpg', imgSmall: svc + '/full/843,/0/default.jpg', img: svc + '/full/1686,/0/default.jpg',
+      zoom: svc + '/info.json', link: (d.isShownAt && d.isShownAt.id) || c.id,
+    };
+  }
+  async function rijksWorks(a) {
+    const s = await getJSON('rijks', RIJKS_SEARCH + '?' + new URLSearchParams({ creator: a.q, type: 'painting', imageAvailable: 'true' }));
+    const ids = (s.orderedItems || []).map((x) => x.id.split('/').pop()).slice(0, 20);
+    const out = new Map();
+    let i = 0;
+    const worker = async () => {
+      while (i < ids.length) {
+        const id = ids[i++];
+        try {
+          const d = await getJSON('rijks', RIJKS_DATA + id + '?' + new URLSearchParams({ _profile: 'edm-framed', _mediatype: 'application/ld+json' }));
+          const c = d.aggregatedCHO || {}, who = [].concat(c.creator || []);
+          /* L'autore giusto: stesso Wikidata, oppure (se il museo non lo indica) il nome. */
+          const mine = who.some((p) => [].concat(p.sameAs || []).includes('http://www.wikidata.org/entity/' + a.w))
+            || (!who.some((p) => p.sameAs) && who.some((p) => norm(lv(p[SKOS_LABEL])).includes(a.k)));
+          const svc = d.isShownBy && d.isShownBy[SIOC_SVC] && d.isShownBy[SIOC_SVC].id;
+          if (mine && svc && /publicdomain|zero/.test(d.edmRights || '')) out.set(id, fromRijks(d, a));
+        } catch (_) { /* un'opera che non risponde si salta */ }
+      }
+    };
+    await Promise.all([worker(), worker(), worker(), worker()]);
+    return ids.filter((id) => out.has(id)).map((id) => out.get(id));
+  }
+
+  /* ---------- SMK, Statens Museum for Kunst di Copenaghen (senza chiave) ----------
+     Dipinti di pubblico dominio con immagine; zoom dal suo server IIIF. */
+  const SMK = 'https://api.smk.dk/api/v1/art/search/';
+  const SMK_FIELDS = 'object_number,titles,production,production_date,techniques,dimensions,image_thumbnail,image_iiif_id,image_iiif_info,image_width,image_height,frontend_url,public_domain';
+  const TECH_IT = (t) => {
+    const m = /^(oil|tempera|watercolou?r|gouache|pastel)\s+on\s+(\w+)/i.exec(t || '');
+    if (!m) return t || '';
+    return mediumOf(matsOf([m[1], m[2]])) || t;
+  };
+  function fromSmk(r, a) {
+    const t = (r.titles || []).find((x) => x.language === 'engelsk') || (r.titles || [])[0] || {};
+    const dim = (k) => { const d = (r.dimensions || []).find((x) => x.type === k && /netto|billedm/i.test(x.part || '')) || (r.dimensions || []).find((x) => x.type === k); return d ? Number(d.value) / (d.unit === 'mm' ? 10 : 1) : 0; };
+    const h = dim('height'), wd = dim('width'), svc = r.image_iiif_id;
+    const title = t.title || 'Senza titolo';
+    return {
+      id: 'smk-' + r.object_number, src: 'smk', museum: 'SMK – Statens Museum for Kunst, Copenaghen',
+      title, artist: a.n, bio: life(a),
+      date: ((r.production_date || [])[0] || {}).period || '', medium: TECH_IT((r.techniques || [])[0]),
+      dims: h && wd ? cm(h) + ' × ' + cm(wd) + ' cm' : '', credit: '',
+      painting: true, w: r.image_width || 0, h: r.image_height || 0, lqip: '', alt: title,
+      thumb: r.image_thumbnail || svc + '/full/!1024,1024/0/default.jpg', imgSmall: r.image_thumbnail || svc + '/full/!1024,1024/0/default.jpg',
+      img: svc + '/full/1686,/0/default.jpg', zoom: r.image_iiif_info || svc + '/info.json',
+      link: r.frontend_url || '',
+    };
+  }
+  async function smkWorks(a) {
+    const d = await getJSON('smk', SMK + '?' + new URLSearchParams({
+      keys: a.q, filters: '[public_domain:true],[has_image:true],[object_names:painting]', rows: '40', lang: 'en', fields: SMK_FIELDS,
+    }));
+    /* Conta solo l'attribuzione principale e senza riserve: niente bottega, scuola, copie da, già attribuito a. */
+    return (d.items || []).filter((r) => {
+      const p = (r.production || [])[0];
+      return r.public_domain && r.image_iiif_id && p && !p.creator_role && !/[(]|skole|efter|kopi/i.test(p.creator || '') &&
+        norm([p.creator_forename, p.creator_surname].join(' ')).includes(a.k);
+    }).map((r) => fromSmk(r, a));
+  }
+
   /* L'Art Institute protegge le immagini con Cloudflare, che a volte le blocca.
      Prima di usarlo proviamo a caricare un'immagine nota: se non passa, lo saltiamo per tutta la sessione. */
   let aicProbe = null;
@@ -1263,9 +1553,9 @@
 
   /* ---------- Stato per artista, con cache sul dispositivo (7 giorni, ultimi 30 artisti) ---------- */
   const CACHE_PREFIX = 'ee.artist.v6.', CACHE_INDEX = 'ee.artist.index.v6', CACHE_TTL = 7 * 864e5;
-  const SOURCES = { wd: wdWorks, cma: cmaWorks, met: metWorks, aic: aicWorks };
-  const SRC_ORDER = ['wd', 'cma', 'met', 'aic'];
-  const SRC_NAME = { wd: 'Wikimedia', cma: 'Cleveland', met: 'Met', aic: 'Chicago' };
+  const SOURCES = { wd: wdWorks, cma: cmaWorks, met: metWorks, aic: aicWorks, rijks: rijksWorks, smk: smkWorks };
+  const SRC_ORDER = ['wd', 'cma', 'met', 'aic', 'rijks', 'smk'];
+  const SRC_NAME = { wd: 'Wikimedia', cma: 'Cleveland', met: 'Met', aic: 'Chicago', rijks: 'Rijksmuseum', smk: 'SMK' };
   const states = new Map();
   function store(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (_) { return false; } }
   function load(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (_) { return null; } }
@@ -1310,11 +1600,36 @@
   /* Per la copertina basta la prima fonte che trova qualcosa. */
   async function ensureCover(a) { await ensure(a, 'wd'); if (!st(a).works.wd.length) await ensure(a, 'cma'); }
   const settled = (a, k) => ['done', 'error', 'blocked'].includes(st(a).status[k]);
-  /* Le opere già presenti da Wikidata non si ripetono quando arrivano dai musei (confronto sul titolo inglese). */
+  /* Parole che contano in un titolo: senza articoli e preposizioni, "St" come "Saint". */
+  const STOP = new Set('the of a an and with in on at as known probably called de het een van met en la il lo le di del della dei e da con'.split(' '));
+  const words = (t) => norm(t).split(' ').map((x) => (x === 'st' ? 'saint' : x)).filter((x) => x && !STOP.has(x));
+  /* Quanta parte del titolo più corto (almeno due parole) si ritrova nell'altro. */
+  const overlap = (p, q) => {
+    const [sh, lo] = p.length <= q.length ? [p, q] : [q, p];
+    if (sh.length < 2) return 0;
+    const L = new Set(lo);
+    return sh.filter((x) => L.has(x)).length / sh.length;
+  };
+  /* Le opere già presenti da Wikidata non si ripetono quando arrivano dai musei (confronto sul titolo inglese).
+     Passano solo le opere di pubblico dominio (pdOK): il filtro sta qui, così vale per pareti, passeggiata, opera a caso e del giorno. */
   const allWorks = (a) => {
-    const s = st(a);
+    const s = st(a), ok = (w) => pdOK(w, a);
     const known = new Set(s.works.wd.flatMap((w) => [norm(w.en), norm(w.title)]).filter(Boolean));
-    return s.works.wd.concat(SRC_ORDER.slice(1).flatMap((k) => s.works[k].filter((w) => !known.has(norm(w.title)))));
+    /* Rijksmuseum e SMK non danno l'identificativo Wikidata dell'opera: si confrontano titolo (inglese, olandese o danese) e anno,
+       perché titoli come "Autoritratto" si ripetono tra opere diverse dello stesso artista. */
+    /* Se l'opera di Wikidata sta nello stesso museo basta che quasi tutte le parole del titolo più corto stiano nell'altro
+       ("The Jewish Bride" e "Isaac and Rebecca, Known as 'The Jewish Bride'"; "Syndics of the Drapers' Guild" e "The Sampling
+       Officials of the Amsterdam Drapers' Guild, Known as 'The Syndics'"), con al più tre anni di differenza: i musei datano
+       "c. 1665 - c. 1669", Wikidata 1667. */
+    const wdT = s.works.wd.map((w) => ({ t: [w.en, w.title].filter(Boolean).map(words), y: yearOf(w), m: norm(w.museum) }));
+    const sameMuseum = (w, x) => (w.src === 'rijks' ? x.m.includes('rijksmuseum') : /statens museum|\bsmk\b/.test(x.m));
+    const dup = (w) => {
+      if (w.src !== 'rijks' && w.src !== 'smk') return known.has(norm(w.title));
+      const ts = [w.title, w.nl].filter(Boolean).map(words), y = yearOf(w);
+      return wdT.some((x) => x.t.some((t) => ts.some((u) => (t.join(' ') === u.join(' ') && x.y === y) ||
+        (sameMuseum(w, x) && Math.abs(x.y - y) <= 3 && overlap(t, u) >= .75))));
+    };
+    return s.works.wd.filter(ok).concat(SRC_ORDER.slice(1).flatMap((k) => s.works[k].filter((w) => ok(w) && !dup(w))));
   };
   const hasPaintings = (a) => allWorks(a).some((w) => w.painting);
 
@@ -1322,6 +1637,15 @@
   const yearOf = (w) => { const m = /(\d{3,4})/.exec((w && w.date) || ''); return m ? Number(m[1]) : 0; };
   const born = (a) => parseInt(a.b, 10) || 0;
   const died = (a) => parseInt(a.d, 10) || 0;
+  /* Per il pubblico dominio conta l'anno più tardo scritto nella data ("1911–1914" → 1914, "c. 1665–70" → 1665). */
+  const lastYearOf = (w) => { const ys = String((w && w.date) || '').match(/\d{3,4}/g); return ys ? Math.max(...ys.map(Number)) : 0; };
+  /* Un'opera entra se è datata entro la soglia; senza data, solo se l'artista è morto entro la soglia delle opere. */
+  function pdOK(w, a) {
+    const y = lastYearOf(w);
+    if (y) return y <= PD_WORK;
+    const ar = a || artistBySlug.get((w && w.as) || '');
+    return !!ar && died(ar) > 0 && died(ar) <= PD_WORK;
+  }
   const MODE_KEY = 'ee.mode', SORT_KEY = 'ee.sort';
   let mode = load(MODE_KEY) === 'all' ? 'all' : 'paint';
   let sortMode = load(SORT_KEY) === 'time' ? 'time' : 'fame';
@@ -1345,6 +1669,8 @@
   const COLL_KEY = 'ee.collection.v1';
   let coll = (Array.isArray(load(COLL_KEY)) ? load(COLL_KEY) : []).map((w) => (w.thumb ? Object.assign(w, { thumb: w.thumb.replace('/full/400,/', '/full/843,/') }) : w));
   const inColl = (w) => coll.some((x) => x.id === w.id);
+  /* Si vedono solo le opere salvate che rispettano la regola del pubblico dominio; le altre restano salvate ma non compaiono. */
+  const collShown = () => coll.filter((w) => pdOK(w));
   function toggleColl(w) {
     if (inColl(w)) { coll = coll.filter((x) => x.id !== w.id); msg('Tolta dalla collezione.'); }
     else { coll.unshift(Object.assign({}, w, { lqip: '' })); msg('Salvata nella tua collezione.'); }
@@ -1354,9 +1680,10 @@
   function updateCollBadge() {
     const btn = $('#collBtn');
     let b = btn.querySelector('.badge');
-    if (!coll.length) { if (b) b.remove(); return; }
+    const n = collShown().length;
+    if (!n) { if (b) b.remove(); return; }
     if (!b) { b = el('span', 'badge'); btn.appendChild(b); }
-    b.textContent = String(coll.length);
+    b.textContent = String(n);
   }
 
   /* ---------- Avvisi ---------- */
@@ -1417,14 +1744,13 @@
   const SYM_KEY = 'ee.symbols.v1', SYM_TTL = 30 * 864e5;
   /* Opere molto note ma poco adatte a fare da insegna in mezzo alla pianta. */
   const SYM_SKIP = ['wd-Q334138'];
-  /* sala: [opera, artista, titolo, file su Commons] — risultato dell'interrogazione qui sotto al 15/11/2026. */
+  /* sala: [opera, artista, titolo, file su Commons] — risultato dell'interrogazione qui sotto al 15/11/2026 (con il filtro del pubblico dominio). */
   const SYM_SEED = {
     'protorinascimento': ['wd-Q979440', 'simone-martini', 'Annunciazione tra i santi Ansano e Margherita', 'Simone Martini — Annunciation with St. Margaret and St. Ansanus.jpg'],
     'rinascimento-italiano': ['wd-Q12418', 'leonardo-da-vinci', 'La Gioconda', 'Mona Lisa, by Leonardo da Vinci, from C2RMF retouched.jpg'],
     'rinascimento-veneziano': ['wd-Q727875', 'tiziano', 'Venere di Urbino', "Tiziano's Venere di Urbino (from The History BLog).jpg"],
     'manierismo': ['wd-Q94802', 'el-greco', 'La sepoltura del conte di Orgaz', 'El Greco - The Burial of the Count of Orgaz.JPG'],
     'rinascimento-nordico': ['wd-Q321303', 'hieronymus-bosch', 'Trittico del Giardino delle delizie', 'The Garden of Earthly Delights by Bosch High Resolution 2.jpg'],
-    'barocco': ['wd-Q185372', 'johannes-vermeer', "Ragazza con l'orecchino di perla", '1665 Girl with a Pearl Earring.jpg'],
     'rococo': ['wd-Q2629559', 'jean-honore-fragonard', "I fortunati casi dell'altalena", 'Fragonard, The Swing.jpg'],
     'neoclassicismo': ['wd-Q1752990', 'jacques-louis-david', 'Morte di Socrate', 'The Death of Socrates MET DP-13139-001.jpg'],
     'romanticismo': ['wd-Q29530', 'eugene-delacroix', 'La Libertà che guida il popolo', 'La Liberté guidant le peuple - Eugène Delacroix - Musée du Louvre Peintures RF 129 - après restauration 2024.jpg'],
@@ -1434,7 +1760,30 @@
     'postimpressionismo': ['wd-Q45585', 'vincent-van-gogh', 'Notte stellata', 'Van Gogh - Starry Night - Google Art Project.jpg'],
     'neoimpressionismo': ['wd-Q1044742', 'georges-seurat', "Una domenica pomeriggio sull'isola della Grande-Jatte", 'A Sunday on La Grande Jatte, Georges Seurat, 1884.jpg'],
     'simbolismo': ['wd-Q698487', 'gustav-klimt', 'Il bacio', 'The Kiss - Gustav Klimt - Google Cultural Institute.jpg'],
-    'avanguardie': ['wd-Q3877556', 'amedeo-modigliani', 'Nu couché', 'Modigliani - Nu couché.jpg'],
+    'gotico-internazionale': ['wd-Q1055117', 'gentile-da-fabriano', 'Adorazione dei Magi', 'Gentile da Fabriano - Adorazione dei Magi - Google Art Project.jpg'],
+    'barocco-italiano': ['wd-Q969377', 'caravaggio', 'Vocazione di san Matteo', 'Caravaggio — The Calling of Saint Matthew.jpg'],
+    'barocco-fiammingo': ['wd-Q2653851', 'pieter-paul-rubens', 'Innalzamento della Croce', 'Peter Paul Rubens - Raising of the Cross (Cathedral of Antwerp).jpg'],
+    'secolo-oro-olandese': ['wd-Q185372', 'johannes-vermeer', "Ragazza con l'orecchino di perla", '1665 Girl with a Pearl Earring.jpg'],
+    'siglo-de-oro': ['wd-Q208758', 'diego-velazquez', 'Las Meninas', 'Las Meninas, by Diego Velázquez, from Prado in Google Earth.jpg'],
+    'classicismo-francese': ['wd-Q377810', 'nicolas-poussin', "L'Adorazione del Vitello d'oro", "Nicolas poussin, adorazione del vitello d'oro, 1633-34FXD.jpg"],
+    'settecento-inglese': ['wd-Q604761', 'thomas-gainsborough', 'Il ragazzo in azzurro', 'Thomas Gainsborough - The Blue Boy (c. 1770).jpg'],
+    'hudson-river': ['wd-Q334604', 'frederic-edwin-church', 'Il cuore delle Ande', 'Church Heart of the Andes.jpg'],
+    'macchiaioli': ['wd-Q1121644', 'giovanni-fattori', 'Barrocci romani', 'Barrocci romani by Giovanni Fattori.jpg'],
+    'preraffaelliti': ['wd-Q1065493', 'john-everett-millais', 'Ophelia', 'John Everett Millais - Ophelia - Google Art Project.jpg'],
+    'accademica': ['wd-Q1283024', 'william-adolphe-bouguereau', 'Nascita di Venere', 'William-Adolphe Bouguereau (1825-1905) - The Birth of Venus (1879).jpg'],
+    'pittura-russa': ['wd-Q478271', 'il-ja-repin', "I Cosacchi dello Zaporož'e scrivono una lettera al Sultano di Turchia", 'Ilja Jefimowitsch Repin - Reply of the Zaporozhian Cossacks - Yorck.jpg'],
+    'realismo-americano': ['wd-Q687182', 'james-mcneill-whistler', 'Arrangiamento in grigio e nero, ritratto n. 1', 'Whistlers Mother high res.jpg'],
+    'nabis': ['wd-Q47010031', 'pierre-bonnard', 'Nude against the light', 'Nu à contre-jour - Pierre Bonnard.jpg'],
+    'divisionismo': ['wd-Q1199809', 'giuseppe-pellizza-da-volpedo', 'Il quarto stato', 'Quarto Stato.jpg'],
+    'pittura-scandinava': ['wd-Q18085208', 'peder-severin-kroyer', "Summer Evening on Skagen's Southern Beach", "P.S. Krøyer - Summer evening on Skagen's Beach. Anna Ancher and Marie Krøyer walking together. - Google Art Project.jpg"],
+    'fauvismo': ['wd-Q1437492', 'henri-matisse', 'Donna con cappello', 'Matisse-Woman-with-a-Hat.jpg'],
+    'espressionismo': ['wd-Q1555137', 'egon-schiele', 'Portrait of Wally', 'Egon Schiele - Portrait of Wally Neuzil - Google Art Project.jpg'],
+    'cubismo-orfismo': ['wd-Q6461080', 'juan-gris', 'The Bottle of Anís del Mono', "Juan Gris - La bouteille d'anis - Google Art Project.jpg"],
+    'futurismo': ['wd-Q587514', 'umberto-boccioni', 'La città che sale', 'The City Rises by Umberto Boccioni 1910.jpg'],
+    'scuola-di-parigi': ['wd-Q3877556', 'amedeo-modigliani', 'Nu couché', 'Modigliani - Nu couché.jpg'],
+    'astrattismo-russo': ['wd-Q1170315', 'kazimir-malevic', 'Quadrato nero', 'Чёрный супрематический квадрат. 1915. ГТГ.png'],
+    'dada': ['wd-Q20191695', 'francis-picabia', 'The Procession, Seville', 'Francis Picabia, 1912, The Procession, Seville, oil on canvas, 121.9 x 121.9 cm, National Gallery of Art, Washington DC.jpg'],
+    'de-stijl': ['wd-Q3818263', 'piet-mondrian', "L'albero rosso", 'Piet Mondrian, 1908-10, Evening; Red Tree (Avond; De rode boom), oil on canvas, 70 x 99 cm, Gemeentemuseum Den Haag.jpg'],
   };
   /* La scelta scritta vale solo finché quell'artista è ancora in quella sala. */
   const seedOf = (m) => {
@@ -1448,12 +1797,16 @@
     while (symBusy < 2 && symQ.length) { symBusy++; symQ.shift()().finally(() => { symBusy--; symPump(); }); }
   }
   const symRun = (fn) => new Promise((res, rej) => { symQ.push(() => fn().then(res, rej)); symPump(); });
-  const symbolQuery = (m) => `SELECT ?item ?artist ?image ?sitelinks ?itemLabel ?en WHERE {
-      { SELECT ?item ?artist ?image ?sitelinks WHERE {
+  /* Solo opere entro la soglia del pubblico dominio (quelle senza data passano dopo il controllo pdOK). */
+  const symbolQuery = (m) => `SELECT ?item ?artist ?image ?sitelinks ?inception ?itemLabel ?en WHERE {
+      { SELECT ?item ?artist ?image ?sitelinks (MAX(?inc) AS ?inception) WHERE {
           VALUES ?artist { ${m.artists.filter((a) => a.w).map((a) => 'wd:' + a.w).join(' ')} }
           VALUES ?type { ${WD_PAINT.map((q) => 'wd:' + q).join(' ')} }
           ?item wdt:P170 ?artist; wdt:P31 ?type; wdt:P18 ?image; wikibase:sitelinks ?sitelinks.
-        } ORDER BY DESC(?sitelinks) LIMIT 8 }
+          OPTIONAL { ?item wdt:P571 ?inc. }
+        } GROUP BY ?item ?artist ?image ?sitelinks
+          HAVING(COALESCE(YEAR(MAX(?inc)), 0) <= ${PD_WORK})
+          ORDER BY DESC(?sitelinks) LIMIT 10 }
       OPTIONAL { ?item rdfs:label ?itemLabel FILTER(LANG(?itemLabel) = "it") }
       OPTIONAL { ?item rdfs:label ?en FILTER(LANG(?en) = "en") }
     } ORDER BY DESC(?sitelinks)`;
@@ -1472,7 +1825,7 @@
       const rows = (d.results && d.results.bindings) || [];
       /* Le righe passano da wdRows, come le opere di un artista: stessi controlli sul file, stesso titolo, stessa "fama". */
       const works = withQid.flatMap((a) => wdRows(a, rows.filter((b) => b.artist.value.endsWith('/' + a.w))).map((w) => [w, a]))
-        .filter(([w]) => !SYM_SKIP.includes(w.id)).sort((x, y) => y[0].fame - x[0].fame);
+        .filter(([w, a]) => !SYM_SKIP.includes(w.id) && pdOK(w, a)).sort((x, y) => y[0].fame - x[0].fame);
       const s = { t: Date.now(), id: '', slug: '', title: '', artist: '', file: '' };
       if (works.length) { const [w, a] = works[0]; Object.assign(s, { id: w.id, slug: a.slug, title: w.title, artist: a.n, file: w.file }); }
       symCache[m.id] = s; store(SYM_KEY, symCache);
@@ -1504,7 +1857,8 @@
   /* ---------- Pianta del museo ---------- */
   const moveList = $('#moveList'), find = $('#find');
   /* L'asse copre tutte le sale, con un piccolo margine: aggiungendo una sala più antica o più recente si allarga da solo. */
-  const FIRST = Math.min(...MOVEMENTS.map((m) => m.from)), LAST = Math.max(...MOVEMENTS.map((m) => m.to));
+  /* L'ultimo anno della pianta è quello dell'ultima sala, ma mai oltre la soglia delle opere di pubblico dominio. */
+  const FIRST = Math.min(...MOVEMENTS.map((m) => m.from)), LAST = Math.min(PD_WORK, Math.max(...MOVEMENTS.map((m) => m.to)));
   const SPAN0 = Math.floor((FIRST - 20) / 10) * 10, SPAN1 = Math.ceil((LAST + 10) / 10) * 10;
   const pct = (y) => (y - SPAN0) / (SPAN1 - SPAN0) * 100;
   function trackFor(from, to) {
@@ -1551,6 +1905,7 @@
     for (const li of moveList.children) { const ok = !q || li.dataset.key.includes(q); li.hidden = !ok; if (ok) shown++; }
     $('#moveK').hidden = !shown;
     $('#axis').hidden = !shown;
+    if (nyDone) $('#newYear').hidden = !!q;
     const hits = q ? ALL.filter((a) => norm(a.n + ' ' + a.q).includes(q)).slice(0, 12) : [];
     const list = $('#artistHitList'); list.textContent = '';
     hits.forEach((a) => {
@@ -1598,7 +1953,7 @@
     if (todayP) return todayP;
     todayP = (async () => {
       const day = dayNum(), c = load(TODAY_KEY);
-      if (c && c.day === day && c.w && artistBySlug.has(c.slug)) { today = c; renderToday(); return; }
+      if (c && c.day === day && c.w && artistBySlug.has(c.slug) && pdOK(c.w, artistBySlug.get(c.slug))) { today = c; renderToday(); return; }
       $('#today').hidden = false;
       for (let t = 0; t < 4 && !today; t++) {
         const a = ALL[(day * 7 + t * 13) % ALL.length];
@@ -1610,6 +1965,75 @@
     })();
     return todayP;
   }
+  /* ---------- Entrati nel museo quest'anno ----------
+     Ogni 1° gennaio diventano di pubblico dominio gli artisti morti 71 anni prima e le opere di 96 anni prima.
+     Gli artisti si leggono dalle sale; le opere dell'anno le cerca una sola interrogazione a Wikidata, tra gli artisti
+     del museo vivi in quell'anno, e restano sul dispositivo per due settimane. Con meno di due voci la sezione non compare. */
+  const NY_KEY = 'ee.newyear.v1', NY_TTL = 14 * 864e5;
+  const extraWorks = new Map();
+  let nyWall = null, nyDone = false, nyP = null;
+  const nyQuery = (as) => `SELECT ?item ?artist ?image ?sitelinks ?inception ?itemLabel ?en WHERE {
+      { SELECT ?item ?artist ?image ?sitelinks (MAX(?inc) AS ?inception) WHERE {
+          VALUES ?artist { ${as.map((a) => 'wd:' + a.w).join(' ')} }
+          VALUES ?type { ${WD_PAINT.map((q) => 'wd:' + q).join(' ')} }
+          ?item wdt:P170 ?artist; wdt:P31 ?type; wdt:P18 ?image; wikibase:sitelinks ?sitelinks; wdt:P571 ?inc.
+          FILTER(YEAR(?inc) = ${PD_WORK})
+        } GROUP BY ?item ?artist ?image ?sitelinks ORDER BY DESC(?sitelinks) LIMIT 16 }
+      OPTIONAL { ?item rdfs:label ?itemLabel FILTER(LANG(?itemLabel) = "it") }
+      OPTIONAL { ?item rdfs:label ?en FILTER(LANG(?en) = "en") }
+    } ORDER BY DESC(?sitelinks)`;
+  function newYearWorks() {
+    if (nyP) return nyP;
+    nyP = (async () => {
+      const c = load(NY_KEY);
+      if (c && c.y === YEAR && Date.now() - c.t < NY_TTL && Array.isArray(c.works)) return c.works;
+      /* Chi poteva dipingere in quell'anno: vivo allora e con almeno 15 anni. */
+      const as = ALL.filter((a) => a.w && died(a) >= PD_WORK && born(a) && born(a) <= PD_WORK - 15);
+      if (!as.length) return [];
+      const d = await symRun(() => Promise.race([
+        getJSON('sym', WD_SPARQL + '?' + new URLSearchParams({ query: nyQuery(as), format: 'json' })),
+        sleep(15000).then(() => { throw new Error('lenta'); }),
+      ]));
+      const rows = (d.results && d.results.bindings) || [];
+      const works = as.flatMap((a) => wdRows(a, rows.filter((b) => b.artist.value.endsWith('/' + a.w))).map((w) => Object.assign(w, { as: a.slug })))
+        .filter((w) => pdOK(w)).sort((x, y) => y.fame - x.fame).slice(0, 8);
+      store(NY_KEY, { y: YEAR, t: Date.now(), works });
+      return works;
+    })().catch(() => { nyP = null; return null; });
+    return nyP;
+  }
+  async function renderNewYear() {
+    if (nyDone) { if (nyWall) nyWall.resized(); return; }
+    const artists = ALL.filter((a) => died(a) === PD_DEATH);
+    const works = await newYearWorks();
+    if (!works || nyDone || view !== 'hall') return;
+    if (artists.length + works.length < 2) return;
+    nyDone = true;
+    const box = $('#newYear');
+    $('#newYearNote').textContent = 'Dal 1° gennaio ' + YEAR + ' sono di pubblico dominio gli artisti morti nel ' + PD_DEATH +
+      ' e le opere del ' + PD_WORK + ': ora si possono mostrare anche qui.';
+    const list = $('#newYearArtists'); list.textContent = '';
+    artists.forEach((a) => {
+      const li = el('li'), b = el('button', 'row plain'); b.type = 'button';
+      const nm = el('span', 'nm'); nm.append(el('b', '', a.n), el('small', '', a.move.name));
+      const chev = el('span', 'chev', '›'); chev.setAttribute('aria-hidden', 'true');
+      b.append(el('span', 'yrs', life(a)), nm, el('span', 'n'), chev);
+      b.addEventListener('click', () => go('#a/' + a.slug));
+      li.appendChild(b); list.appendChild(li);
+    });
+    list.hidden = !artists.length;
+    box.hidden = false;
+    const wallEl = $('#newYearWorks');
+    wallEl.hidden = !works.length;
+    if (works.length) {
+      works.forEach((w) => extraWorks.set(w.id, w));
+      nyWall = makeWall(wallEl);
+      ownTiles('h');
+      nyWall.set(works.map((w) => workTile(w, '#w/' + w.as + '/' + w.id)));
+      fillSizes(works, nyWall);
+    }
+  }
+
   function showHall() {
     setView('hall');
     document.title = 'Endless Exposure';
@@ -1620,6 +2044,7 @@
       a.append(el('i', '', last.t)); if (last.a) a.append(' — ' + last.a);
     }
     loadToday();
+    renderNewYear();
     restoreScroll(pages.hall);
     /* Tornando alla pianta dall'opera del giorno, il quadro rientra nel suo posto all'ingresso. */
     if (inVT && lastSeen && today && lastSeen.ctx === today.slug && lastSeen.id === today.w.id) {
@@ -1975,7 +2400,7 @@
       if (done && !all.length && failed.length < SRC_ORDER.length) {
         if (!note) { note = el('p', 'empty-note'); artWorks.after(note); }
         note.textContent = 'Nessuna opera di pubblico dominio di ' + a.n + ' nelle collezioni aperte consultate. ' +
-          (Number(a.d) > 1925 ? 'Per gli artisti del Novecento è frequente: le opere sono ancora protette dal diritto d’autore.' : 'Altri musei con API aperte potranno riempire questo vuoto.');
+          (died(a) > PD_WORK - 5 ? 'Per gli artisti del Novecento è frequente: le opere sono ancora protette dal diritto d’autore.' : 'Altri musei con API aperte potranno riempire questo vuoto.');
       } else if (note) note.remove();
     };
     s.subs.add(render);
@@ -2007,18 +2432,19 @@
   function showColl() {
     setView('coll', '#', [['Pianta', '#']]);
     document.title = 'La mia collezione · Endless Exposure';
-    $('#collStatus').textContent = coll.length
-      ? plural(coll.length, 'opera', 'opere')
+    const shown = collShown();
+    $('#collStatus').textContent = shown.length
+      ? plural(shown.length, 'opera', 'opere')
       : 'Ancora vuota. Davanti a un quadro tocca il cuore (o premi L) per salvarlo qui.';
-    $('#collStroll').hidden = coll.length < 2;
+    $('#collStroll').hidden = shown.length < 2;
     ownTiles('c');
-    if (coll.length) { collWall.set(coll.map((w) => workTile(w, '#c/' + w.id))); fillSizes(coll, collWall); } else collWall.clear();
+    if (shown.length) { collWall.set(shown.map((w) => workTile(w, '#c/' + w.id))); fillSizes(shown, collWall); } else collWall.clear();
     restoreScroll(pages.coll);
     focusSeen(collWall, 'c');
   }
   $('#collStroll').addEventListener('click', () => strollFrom());
   let resizeT = 0;
-  window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => { artWall.resized(); collWall.resized(); }, 160); });
+  window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => { artWall.resized(); collWall.resized(); if (nyWall) nyWall.resized(); }, 160); });
 
   /* ---------- Il quadro in primo piano ---------- */
   const frame = $('#frame'), paint = $('#paint'), paintBtn = $('#paintBtn'), halo = $('#halo');
@@ -2122,7 +2548,7 @@
     const l = $('#labelLink');
     l.hidden = !w.link; if (w.link) l.href = w.link;
     l.textContent = w.src === 'wd' ? 'Wikimedia Commons ↗' : 'Scheda del museo ↗';
-    labelEl.querySelector('.pd').textContent = w.src === 'wd' ? 'Pubblico dominio' : 'Pubblico dominio · CC0';
+    labelEl.querySelector('.pd').textContent = /^(wd|rijks|smk)$/.test(w.src) ? 'Pubblico dominio' : 'Pubblico dominio · CC0';
     const tour = tourFor(w), tl = $('#tourLink');
     tl.hidden = !tour;
     if (tour) { tl.href = tour.url; tl.querySelector('b').textContent = tour.title; tl.querySelector('small').textContent = tour.note; }
@@ -2228,7 +2654,7 @@
   async function showWork(ctx, id, hnt) {
     let list = null, back = '#', crumbs = [['Pianta', '#']];
     if (ctx === 'c') {
-      list = coll; back = '#c'; crumbs.push(['La mia collezione', '#c']);
+      list = collShown(); back = '#c'; crumbs.push(['La mia collezione', '#c']);
       if (!list.some((w) => w.id === id)) { msg('Questa opera non è più nella tua collezione.'); return go('#c'); }
     } else {
       const a = artistBySlug.get(ctx);
@@ -2240,6 +2666,9 @@
       if (SOURCES[srcOf]) await ensure(a, srcOf);
       list = pick();
       if (!list) { await ensureAll(a); list = pick(); }
+      /* Un'opera arrivata da «Entrati nel museo quest'anno» può non essere tra le 200 più note dell'artista: la si aggiunge. */
+      const extra = extraWorks.get(id);
+      if (!list && extra && extra.as === a.slug) { const s = st(a); s.works.wd = s.works.wd.concat(extra); emit(s); list = pick(); }
       if (!list) { msg('Opera non trovata.'); return go(back); }
       /* Quando arrivano le altre collezioni, la sequenza si allunga senza perdere il punto. */
       ensureAll(a).then(() => {
@@ -2375,7 +2804,7 @@
       const a = artistBySlug.get(location.hash.slice(3)), v = a ? visibleWorks(a) : [];
       if (v.length) return go('#w/' + a.slug + '/' + v[0].id);
     }
-    if (view === 'coll' && coll.length) return go('#c/' + coll[0].id);
+    if (view === 'coll' && collShown().length) return go('#c/' + collShown()[0].id);
     if (today) return go('#w/' + today.slug + '/' + today.w.id);
     random();
   }
@@ -2508,7 +2937,7 @@
         }
       } catch (_) {}
     }
-    if (!src && w.src === 'aic' && w.zoom) src = { ts: w.zoom, label: 'IIIF del museo' };
+    if (!src && /^(aic|rijks|smk)$/.test(w.src) && w.zoom) src = { ts: w.zoom, label: 'IIIF del museo' };
     /* 2. Piramide di immagini Commons fino a 3840 px (o all'originale, se più piccolo) */
     if (!src && w.file) {
       try {
@@ -2725,6 +3154,10 @@
     const h = decodeURIComponent(location.hash.slice(1));
     const [k, a, b] = h.split('/');
     if (!h) return showHall();
+    if (k === 'm' && a && MOVED[a] && !moveById.has(a)) {
+      try { history.replaceState(null, '', '#m/' + MOVED[a]); } catch (_) {}
+      return showMovement(MOVED[a]);
+    }
     if (k === 'm' && a) return showMovement(a);
     if (k === 'a' && a) return showArtist(a);
     if (k === 'w' && a && b) return showWork(a, b, hnt);

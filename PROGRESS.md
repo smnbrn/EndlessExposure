@@ -1,59 +1,93 @@
-# PROGRESS — branch `fable-estetica`
+# PROGRESS — branch `nuove-sale`
 
-Lavoro sull'estetica di `index.html`. Lo stile esistente si mantiene (palette, Bodoni Moda, Instrument Sans, cartellino).
+Lavoro su contenuti e fonti di `index.html`: nuove sale e artisti, regola del pubblico dominio, sezione «Entrati nel museo quest'anno», Rijksmuseum, verifica di altre fonti europee. Lo stile visivo non cambia.
+
+Il branch **non è unito a `main`**: la versione pubblicata su GitHub Pages non cambia finché non lo decide il proprietario.
+(Il PROGRESS.md del lavoro precedente, branch `fable-estetica`, resta nella cronologia di Git.)
+
+## Regola sul pubblico dominio (vale per tutto)
+
+- Artista morto entro `annoCorrente − 71` (nel 2026: entro il 1955).
+- Opera datata entro `annoCorrente − 96` (nel 2026: fino al 1930).
+- Opera senza data: entra solo se l'artista è morto entro la soglia delle opere.
+- Soglie calcolate dall'anno corrente nel codice, mai scritte a mano.
 
 ## Checklist
 
-- [x] **0. Base** — `index.html` allineato al file più recente del proprietario, screenshot «prima»
-- [x] **1. La home mostra i quadri** — un'opera simbolo per ogni sala in `#moveList`
-- [x] **2. Transizioni tra le viste** — View Transitions API, miniatura ↔ quadro
-- [x] **Chiusura** — verifica con Playwright (1440×900 e 390×844), `app-version` da 17 a 18
-
-Il branch **non è unito a `main`**: la versione pubblicata su GitHub Pages non cambia finché non lo decide il proprietario.
+- [x] **1. Nuove sale e artisti** — 38 sale (24 nuove), redirect, titolo dinamico, opere simbolo in `SYM_SEED`; ogni sala nuova ha tutti i suoi artisti con opere, nessuna unione necessaria
+- [x] **2. «Entrati nel museo quest'anno»** — provato: Pechstein e Léger, 8 opere del 1930, apertura dell'opera, seconda visita dalla cache (0 richieste)
+- [x] **3. Rijksmuseum** — integrato e provato su Rembrandt (CORS aperto); zoom OpenSeadragon sul IIIF v3 di micr.io provato (anche SMK, IIIF 2)
+- [x] **4. Altre fonti europee** — verificate; SMK integrato (vedi sotto)
+- [x] **Chiusura** — verifica con Playwright superata (1440×900 e 390×844), `app-version` 19
 
 ## Stato
 
-### 0. Base (fatto)
-- Il file ricevuto (`indexEE.html`, 15/11/2026) è più recente di `main`: ha la griglia giustificata delle opere (`makeWall`, `.jrow`) e le copertine degli artisti senza ritaglio. È la base di questo branch.
+### 1. Nuove sale e artisti
+- 82 artisti candidati verificati su Wikidata (wbsearchentities + wbgetentities): tutti esseri umani, pittori (P106 = Q1028181), morti entro il 1955. Nessuno escluso.
+- Barocco diviso in Barocco italiano, Barocco fiammingo (Rubens, Snyders, Jordaens, van Dyck), Secolo d'oro olandese, Siglo de Oro spagnolo.
+- Avanguardie sciolte: Kandinskij e Klee in Espressionismo (Cavaliere azzurro, con Marc, Macke, Jawlensky); Modigliani in una sala residua «Scuola di Parigi» con Pascin, Kisling, Soutine (verificati).
+- `parent`: Gotico internazionale → Gotico e Protorinascimento; Paesaggio sublime americano → Romanticismo; Macchiaioli → Realismo; Nabis e Divisionismo → Postimpressionismo.
+- Redirect: `#m/barocco` → `#m/barocco-italiano`, `#m/avanguardie` → `#m/espressionismo` (provato). Slug degli artisti invariati, quindi `#a/…`, `#w/…` e la collezione funzionano.
+- Soglie: `PD_DEATH = anno − 71`, `PD_WORK = anno − 96`. Artisti oltre la soglia tolti all'avvio; opere filtrate in `allWorks` (anno più tardo scritto nella data), anche nella collezione (nascoste, non cancellate), opera del giorno e opere simbolo.
+- Titolo «Le sale, dal 1260 al 1930» calcolato da dati e soglia.
 
-### 1. La home mostra i quadri (fatto)
-- Ogni riga di `#moveList` ha a sinistra una miniatura quadrata dell'opera simbolo (`.th`): 52 px su desktop, 48 px su telefono. Il posto è riservato da subito, l'immagine entra in dissolvenza: niente salti.
-- Desktop: la riga resta alta 72 px (era 70–74); la linea del tempo ha la stessa lettura di prima (asse e barre allineati, una colonna in più a sinistra).
-- Telefono: riga da 100–104 px a 69–71 px. Nome su una riga sola, sotto artisti e anni, sotto ancora la barra del tempo (senza etichetta: gli anni sono scritti a destra).
-- Scelta dell'opera: la più nota (numero di voci di Wikipedia, lo stesso criterio di «Le più note») tra i dipinti degli artisti della sala. Le righe della risposta passano da `wdRows`, come le opere di un artista.
-- Immagini: `loading="lazy"`, larghezza 250 px da Commons, caricate solo quando la riga sta per entrare nello schermo (`IntersectionObserver`).
-- Opera del giorno: su schermi larghi il posto di quadro e cartellino è riservato (`--today-h`), così quando l'immagine arriva la pagina sotto non si sposta (prima: salto misurato 0,067; ora 0).
+### Opere per sala nuova (15/11/2026, dall'app in Chromium, tutte le fonti, dopo il filtro del pubblico dominio)
+Numero di opere che l'app trova per gli artisti di ogni sala (somma dei «N in tutto» delle pagine degli artisti).
+Una prima passata aveva numeri sbagliati: lo script leggeva la pagina dell'artista precedente (cambio di solo hash). Corretto aspettando il nome giusto.
+Il Met e l'Art Institute non hanno risposto per tutta la prova (il Met limita le richieste, l'Art Institute è dietro Cloudflare): i numeri contano Wikidata, Cleveland, Rijksmuseum e SMK.
 
-### 2. Transizioni tra le viste (fatto)
-- `onHash` avvia `document.startViewTransition` a ogni cambio di vista (pianta ↔ sala ↔ artista ↔ opera, collezione). Da un'opera all'altra resta la dissolvenza di `paintWork`.
-- Elemento condiviso `hero`: il nome è assegnato da codice solo ai due elementi coinvolti e tolto a fine passaggio (prima era fisso su `#paint`). Andata: miniatura toccata → quadro. Ritorno: quadro → la sua miniatura nella parete (o nell'opera del giorno, tornando alla pianta).
-- Direzione: entrando più a fondo la vista nuova sale dal basso (`data-vt="fwd"`), tornando scende dall'alto (`back`); tra viste dello stesso livello solo dissolvenza.
-- Durate: 300 ms (vista che esce), 360 ms (vista che entra), 340 ms (barra in alto), 420 ms (quadro). Curva `--ease` ovunque.
-- `prefers-reduced-motion`: nessun passaggio avviato (provato: 0 chiamate). Senza l'API: cambio vista normale, nessun errore (provato togliendo `startViewTransition`).
+| Sala | Opere | Artisti con opere | Wikidata non raggiungibile durante la prova |
+|---|---|---|---|
+| Gotico internazionale | 111 | 2/2 | — |
+| Barocco italiano | 1151 | 7/7 | — |
+| Barocco fiammingo | 863 | 4/4 | — |
+| Secolo d'oro olandese | 958 | 5/5 | — |
+| Siglo de Oro spagnolo | 596 | 4/4 | Murillo (3, solo Cleveland) |
+| Classicismo francese del Seicento | 444 | 2/2 | — |
+| Settecento inglese | 761 | 5/5 | Reynolds (14, solo Cleveland) |
+| Paesaggio sublime americano | 347 | 3/3 | Bierstadt (3) |
+| Macchiaioli | 151 | 3/3 | — |
+| Preraffaelliti | 652 | 4/4 | — |
+| Pittura accademica | 574 | 4/4 | Cabanel (2) |
+| Pittura russa | 640 | 4/4 | — |
+| Realismo americano | 593 | 3/3 | Sargent (10) |
+| Nabis | 394 | 2/2 | — |
+| Divisionismo italiano | 64 | 3/3 | — |
+| Pittura scandinava | 526 | 3/3 | — |
+| Fauvismo | 460 | 4/4 | — |
+| Espressionismo | 1661 | 12/12 | — |
+| Cubismo e Orfismo | 642 | 6/6 | — |
+| Futurismo | 85 | 2/2 | — |
+| Scuola di Parigi | 387 | 4/4 | — |
+| Astrattismo russo | 207 | 4/4 | — |
+| Dada | 42 | 3/3 | — |
+| De Stijl | 376 | 2/2 | — |
 
-### Chiusura (fatto)
-- Prove automatiche con Playwright e Chromium, rete attiva, a 1440×900 e 390×844:
-  - 9 passaggi tra viste per formato: elemento condiviso presente dove previsto, durate e curva giuste, nomi tutti tolti alla fine;
-  - 23 controlli di non-regressione, tutti superati: hash `#m/`, `#a/`, `#w/`, `#c/`; tasti R, C, M, P, I, Z, L, F, frecce, Esc, Invio nella ricerca; indietro del browser; zoom (anche OpenSeadragon sulla Notte stellata, 16.000 px); passeggiata; collezione in `localStorage`; inclinazione del quadro; opera del giorno; «Riprendi da»; aree sicure (`env(safe-area-inset-*)`, `viewport-fit=cover`);
-  - salti di layout nella home: 0 su desktop (prima 0,067), 0,006 su telefono;
-  - nessuno scorrimento orizzontale, nessun errore JavaScript.
-- `app-version`: 17 → 18.
+Per i cinque artisti segnati Wikidata ha risposto con errore (limite di richieste del 15/11): l'errore non resta in cache e la pagina riprova alla visita successiva.
+
+### 2. «Entrati nel museo quest'anno»
+- In home sotto le sale: artisti morti nel `PD_DEATH` (nel 2026 Pechstein e Léger) e opere del `PD_WORK` (una interrogazione Wikidata, cache `ee.newyear.v1` per 14 giorni). Meno di 2 voci: nascosta.
+
+### 3. Rijksmuseum
+- Ricerca `data.rijksmuseum.nl/search/collection` (solo id) + resolver profilo `edm-framed` (~20 KB), max 20 opere, 4 in parallelo. Autore riconosciuto dal QID Wikidata del creatore.
+- L'opera non espone il proprio QID: doppioni per titolo normalizzato + anno; se l'opera Wikidata è nello stesso museo basta il 75% delle parole del titolo più corto e ±3 anni. Rembrandt: 20 risolte, 6 nuove dopo i doppioni.
+
+### 4. Altre fonti europee
+- **SMK**: nessuna chiave, CORS aperto, IIIF 2, Public Domain Mark → integrato. Solo attribuzione principale senza riserve (lo SMK mette sotto «Rembrandt» anche bottega, scuola, copie).
+- **Paris Musées**: serve un account e un token (risposta 403 senza); immagini aperte CC0. Servirebbe un token, che in un sito statico sarebbe pubblico: non integrato.
+- **Europeana**: serve una chiave `wskey` gratuita (pro.europeana.eu); si userebbe `api.europeana.eu/record/v2/search.json?query=who:"…"&reusability=open&media=true`. Non integrato.
+
+## Verifica finale (15/11/2026, Playwright + Chromium, rete attiva, 1440×900 e 390×844)
+- Home: titolo «Le sale, dal 1260 al 1930», 38 sale, nessuno scorrimento orizzontale, sezione «Entrati nel museo quest'anno» visibile.
+- Redirect: `#m/barocco` → `#m/barocco-italiano`, `#m/avanguardie` → `#m/espressionismo`.
+- 8 sale nuove (Preraffaelliti, Cubismo e Orfismo, Secolo d'oro olandese, Pittura russa, Espressionismo, Barocco italiano, Settecento inglese, Pittura scandinava): per ognuna un artista e un'opera aperta e caricata; nessuna opera mostrata oltre il 1930.
+- Rijksmuseum: zoom OpenSeadragon sul IIIF del museo (micr.io, IIIF 3); anche SMK (IIIF 2).
+- Collezione con L e C, tasto M, opera del giorno, passeggiata con P (passa all'opera successiva) ed Esc, aree sicure (`viewport-fit=cover`, `env(safe-area-inset-*)`), `app-version` 19.
+- Nessun errore JavaScript. In console resta un solo messaggio di risorsa, uguale su `main`: l'immagine di prova dell'Art Institute bloccata dal loro server (`ERR_BLOCKED_BY_RESPONSE.NotSameOrigin`), che l'app usa apposta per capire se saltare quella fonte.
 
 ## Decisioni
+- Il servizio SPARQL di Wikidata il 15/11/2026 limitava a 1 richiesta/minuto gli script (disservizio in corso); dal browser rispondeva.
+- In console resta un errore di risorsa preesistente: la prova immagine dell'Art Institute bloccata da Cloudflare (`ERR_BLOCKED_BY_RESPONSE`).
 
-- **Opere simbolo scritte nel file (`SYM_SEED`) + Wikidata come riserva.** Una sola interrogazione per tutti i 94 artisti va in timeout (504 dopo 60 s); una per sala risponde in 1–3 s la prima volta, a volte in più di 9 s. Per non far aspettare la home, le 16 scelte di oggi (risultato di quella stessa interrogazione al 15/11/2026) sono scritte nel file. L'interrogazione resta, con cache in `localStorage` (`ee.symbols.v1`, 30 giorni), per le sale nuove e per le immagini che non esistono più: provato togliendo un file, 1 richiesta e poi cache.
-- **Una coda a parte (`sym`) con al massimo due richieste insieme e 9 s di tempo massimo**: non rallenta la coda `wd` degli artisti e resta sotto il limite di Wikidata.
-- **`SYM_SKIP`**: «L'origine du monde» è la più nota del Realismo ma non è adatta a fare da insegna nella pianta; al suo posto la seconda, «Funerale a Ornans».
-- **Miniatura quadrata con ritaglio** (`object-fit: cover`, centro un po' in alto): righe tutte uguali e linea del tempo allineata; il quadro intero si vede entrando.
-- **Telefono: tolto «N artisti» dalla riga** per stare nei 72 px; al suo posto gli anni.
-- **Opera del giorno un po' più bassa su desktop** (al massimo 380 px invece di 430) per riservarle il posto senza allungare la home.
-- **Il nome `hero` va al pulsante del quadro (`#paintBtn`), non all'immagine**: così il quadro vola insieme alla sua ombra; con la sola immagine restava per un attimo il riquadro dell'ombra vuoto.
-- **La barra in alto ha un nome suo (`topbar`) solo durante il passaggio**: resta ferma mentre la pagina sotto si muove. Per quei 340 ms i suoi pulsanti perdono la sfocatura dello sfondo (dietro c'è la parete scura: non si nota).
-- **Se i dati dell'opera non sono ancora sul dispositivo** (es. «Riprendi da» a cache vuota) il passaggio non tiene fermo lo schermo: dopo 280 ms prosegue e la vista cambia quando arrivano i dati, senza animazione.
-- **Sala → artista senza elemento condiviso**: solo il movimento della pagina. La copertina dell'artista potrebbe diventare la prima opera della parete, ma non era richiesto.
-
-## Problemi aperti
-
-- Errori di rete in console che c'erano già e non dipendono da queste modifiche: immagini dell'Art Institute of Chicago bloccate (`ERR_BLOCKED_BY_RESPONSE.NotSameOrigin`), ogni tanto 429/502 di Wikidata sotto carico (durante le prove hanno lasciato alcune copertine su «Carico…» finché non si è sbloccata) e un errore CORS dell'API di Cleveland.
-- Il passaggio miniatura → quadro è stato provato solo in Chromium. Safari e Firefox recenti hanno la stessa API ma non sono stati provati qui.
-- Sulla porta 8765 del PC c'è un altro server locale (non di questo lavoro) che serve la versione vecchia: le prove si sono fatte sulla 8791.
+## Artisti esclusi
+Nessuno: tutti gli 82 artisti richiesti o proposti sono morti entro il 1955 e risultano pittori su Wikidata.
