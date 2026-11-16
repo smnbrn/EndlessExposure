@@ -1,12 +1,16 @@
 {
   "name": "Endless Exposure",
   "short_name": "Exposure",
+  "description": "Sette secoli di pittura, sala per sala: un museo di notte, un quadro alla volta.",
+  "lang": "it",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#18211f",
   "theme_color": "#18211f",
   "icons": [
-    { "src": "icon.png", "sizes": "180x180", "type": "image/png" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

@@ -121,7 +121,7 @@ jobs:
       - name: Prepara il sito
         run: |
           mkdir -p _site
-          cp index.html icon.png icon-512.png manifest.webmanifest capolavori.json .nojekyll _site/
+          cp index.html icon.png icon-192.png icon-512.png icon-maskable-512.png favicon.png manifest.webmanifest capolavori.json .nojekyll _site/
           cp -r tiles _site/tiles
           find _site/tiles -name .firma -delete
 
